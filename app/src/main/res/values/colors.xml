@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="primary">#000000</color>
-    <color name="secondary">#00000099</color>
-    <color name="tertiary">#0000004D</color>
-    <color name="disable">#0000004D</color>
+    <color name="secondary">#99000000</color>
+    <color name="tertiary">#4D000000</color>
+    <color name="disable">#4D000000</color>
 
-    <color name="support_separator">#00000033</color>
-    <color name="support_overlay">#0000000F</color>
+    <color name="support_separator">#33000000</color>
+    <color name="support_overlay">#0F000000</color>
 
     <color name="red">#FF3B30</color>
     <color name="green">#34C759</color>

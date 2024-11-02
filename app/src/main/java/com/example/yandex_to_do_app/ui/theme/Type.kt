@@ -52,7 +52,7 @@ fun AppTypography(): Typography {
     return Typography(
         titleLarge = TextStyle(
             fontFamily = robotoFontFamily,
-            fontSize = 32.sp,
+            fontSize = 100.sp,
             fontWeight = FontWeight.Medium,
             color = colorResource(id = R.color.primary)
         ),
