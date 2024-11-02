@@ -6,7 +6,7 @@ plugins {
 
 android {
     namespace = "com.example.yandex_to_do_app"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.example.yandex_to_do_app"
