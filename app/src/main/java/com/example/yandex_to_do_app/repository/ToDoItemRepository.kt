@@ -15,17 +15,17 @@ interface ToDoItemRepository {
 class ToDoRepository() : ToDoItemRepository
 {
     private val items : MutableList<ToDoItem> = mutableListOf(
-        ToDoItem(1, "Купить что-то", Importance.Medium, Date(2024, 4, 30),
+        ToDoItem(0, "Купить что-то", Importance.Medium, Date(2024, 4, 30),
             false , Date(2024, 4, 25), Date(2024, 4, 30)),
 
-        ToDoItem(2, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
-            false , Date(2024, 4, 20), Date(2024, 4, 20)),
+        ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
+            true , Date(2024, 4, 20), Date(2024, 4, 20)),
 
-        ToDoItem(3, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+        ToDoItem(2, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
             Importance.High, Date(2024, 4, 30),
-            false , Date(2024, 4, 28), Date(2024, 4, 28)),
+            true , Date(2024, 4, 28), Date(2024, 4, 28)),
 
-        ToDoItem(4, "Купить что-то", Importance.Medium, Date(2024, 11, 8),
+        ToDoItem(3, "Купить что-то", Importance.Medium, Date(2024, 11, 8),
             false , Date(2024, 11, 1), Date(2024, 11, 1))
     )
 
@@ -45,6 +45,7 @@ class ToDoRepository() : ToDoItemRepository
         items.remove(item)
     }
 
+
     fun isDeadlineAlmostOver(item: ToDoItem) : Boolean
     {
         val current = LocalDate.now()
@@ -59,6 +60,11 @@ class ToDoRepository() : ToDoItemRepository
         }
 
         return false
+    }
+
+    fun countCompletedItems() : Int
+    {
+        return items.count() {it.isCompleted}
     }
 
 }

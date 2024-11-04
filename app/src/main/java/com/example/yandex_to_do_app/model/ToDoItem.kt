@@ -9,7 +9,7 @@ data class ToDoItem(
     val text: String,
     val importance: Importance,
     val deadline: Date,
-    val isCompleted: Boolean,
+    var isCompleted: Boolean,
     val createdAt: Date,
     val modifiedAt: Date
 )

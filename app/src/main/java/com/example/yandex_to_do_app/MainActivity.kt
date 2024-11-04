@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -45,12 +46,18 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.repository.ToDoItemRepository
+import com.example.yandex_to_do_app.repository.ToDoRepository
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.TaskStatus
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 
+private val toDoItemRepository = ToDoRepository()
+
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -95,7 +102,7 @@ fun ToolBar(isVisibleState: MutableState<Boolean>)
 {
     Row(modifier = Modifier.fillMaxWidth().padding(end = 25.dp)) {
         Text(
-            text = "Выполнено — 5",
+            text = "Выполнено — ${toDoItemRepository.countCompletedItems()}",
             color = colorResource(R.color.tertiary),
             modifier = Modifier.align(Alignment.CenterVertically)
         )
@@ -125,69 +132,68 @@ fun ToolBar(isVisibleState: MutableState<Boolean>)
 @Composable
 fun ListOfItems(isVisibleState: MutableState<Boolean>)
 {
+    val toDoItems : List<ToDoItem> = toDoItemRepository.getAllToDoItems()
 
-    Column(
+    LazyColumn (
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
             .background(Color.White, shape = RoundedCornerShape(12.dp))
     )
     {
-        ListItem(text = "Купить что-то", taskStatus = TaskStatus.Completed)
-        Spacer(modifier = Modifier.height(5.dp))
-        ListItem(text = "Купить что-то", taskStatus = TaskStatus.NotCompleted)
-        Spacer(modifier = Modifier.height(5.dp))
-        ListItem(text = "Купить что-то", taskStatus = TaskStatus.DeadlineAlmostOver)
+        itemsIndexed(toDoItems,
+            key = {_, item -> item.id}) {i, item ->
+            if(!isVisibleState.value && !item.isCompleted)
+            {
+                ListItem(item)
+                Spacer(modifier = Modifier.height(5.dp))
+            }
+            else if(isVisibleState.value)
+            {
+                ListItem(item)
+                Spacer(modifier = Modifier.height(5.dp))
+            }
+        }
     }
 }
 
 @Composable
-fun ListItem(text: String, taskStatus: TaskStatus)
+fun ListItem(toDoItem: ToDoItem)
 {
-    var isChecked : TaskStatus by remember { mutableStateOf(taskStatus) }
-
+    val item = remember { mutableStateOf(toDoItem) }
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     )
     {
         //Код переделаю по возможности чуть позже. Сокрачу If-ы
-        if(isChecked == TaskStatus.NotCompleted || isChecked == TaskStatus.DeadlineAlmostOver)
+        IconButton(onClick = {
+            item.value.isCompleted = !item.value.isCompleted
+        })
         {
-            IconButton(onClick = {isChecked = TaskStatus.Completed})
-            {
-                CheckboxIconLogic(isChecked)
-            }
-            if(isChecked == TaskStatus.DeadlineAlmostOver)
-            {
-                Row()
-                {
-                    Text(text = "!!",
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.red))
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        text = text,
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.primary)
-                    )
 
-                }
-            }
-            else
+            CheckboxIconLogic(item)
+        }
+        if(toDoItemRepository.isDeadlineAlmostOver(item.value)) {
+            Row()
             {
-                Text(text = text,
-                    style = AppTypography().bodyMedium)
+                Text(
+                    text = "!!",
+                    style = AppTypography().bodyMedium,
+                    color = colorResource(R.color.red)
+                )
+                Spacer(Modifier.width(3.dp))
+                Text(
+                    text = item.value.text,
+                    style = AppTypography().bodyMedium,
+                    color = colorResource(R.color.primary)
+                )
             }
         }
-        else
+        else if(item.value.isCompleted == true)
         {
-            IconButton(onClick = {isChecked = TaskStatus.NotCompleted})
-            {
-                CheckboxIconLogic(isChecked)
-            }
             Text(
-                text = text,
+                text = item.value.text,
                 style = TextStyle(
                     fontFamily = robotoFontFamily,
                     fontSize = 16.sp,
@@ -197,6 +203,11 @@ fun ListItem(text: String, taskStatus: TaskStatus)
                 ),
                 color = colorResource(R.color.tertiary)
             )
+        }
+        else if(item.value.isCompleted == false)
+        {
+            Text(text = item.value.text,
+                style = AppTypography().bodyMedium)
         }
 
         Spacer(modifier = Modifier.weight(1f))
@@ -212,25 +223,9 @@ fun ListItem(text: String, taskStatus: TaskStatus)
 }
 
 @Composable
-fun CheckboxIconLogic(isChecked: TaskStatus)
+fun CheckboxIconLogic(item: MutableState<ToDoItem>)
 {
-    if(isChecked == TaskStatus.Completed)
-    {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_checked),
-            contentDescription = "Task completed",
-            tint = colorResource(R.color.green)
-        )
-    }
-    else if(isChecked == TaskStatus.NotCompleted)
-    {
-        Icon(
-            painter = painterResource(id = R.drawable.ic_unchecked),
-            contentDescription = "Task not completed",
-            tint = colorResource(R.color.support_separator)
-        )
-    }
-    else
+    if(toDoItemRepository.isDeadlineAlmostOver(item.value))
     {
         Icon(
             painter = painterResource(id = R.drawable.ic_unchecked),
@@ -238,6 +233,24 @@ fun CheckboxIconLogic(isChecked: TaskStatus)
             tint = colorResource(R.color.red)
         )
     }
+    else if(item.value.isCompleted == false)
+    {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_unchecked),
+            contentDescription = "Task not completed",
+            tint = colorResource(R.color.support_separator)
+        )
+    }
+    else if(item.value.isCompleted == true)
+    {
+        Icon(
+            painter = painterResource(id = R.drawable.ic_checked),
+            contentDescription = "Task completed",
+            tint = colorResource(R.color.green)
+        )
+    }
+
+
 }
 
 @Preview(showBackground = true, showSystemUi = true)
