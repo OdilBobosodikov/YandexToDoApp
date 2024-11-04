@@ -8,6 +8,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.yandex_to_do_app.R
@@ -52,7 +53,7 @@ fun AppTypography(): Typography {
     return Typography(
         titleLarge = TextStyle(
             fontFamily = robotoFontFamily,
-            fontSize = 100.sp,
+            fontSize = 32.sp,
             fontWeight = FontWeight.Medium,
             color = colorResource(id = R.color.primary)
         ),
@@ -73,7 +74,7 @@ fun AppTypography(): Typography {
             fontFamily = robotoFontFamily,
             fontSize = 16.sp,
             fontWeight = FontWeight.Normal,
-            color = Color.Black
+            color = Color.Black,
         ),
         headlineSmall = TextStyle(
             fontFamily = robotoFontFamily,

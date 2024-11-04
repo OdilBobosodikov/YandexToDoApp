@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
@@ -25,6 +26,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +39,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -59,67 +63,121 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
 @Composable
-fun Header()
+fun WholeApp(modifier: Modifier)
 {
-    Column(modifier = Modifier.fillMaxWidth().padding(top = 82.dp, start = 60.dp)) {
-        Text(
-            text = "Мои дела",
-            fontSize = 32.sp,
-            fontFamily = robotoFontFamily,
-            fontWeight = FontWeight(500),
-        )
-        ToolBar()
-    }
-}
-
-@Composable
-fun WholeApp(modifier: Modifier) {
+    var isVisible = remember { mutableStateOf(false) }
 
     Box(modifier = modifier.fillMaxSize().background(colorResource(id = R.color.back_primary)))
     {
         Column(modifier = modifier.fillMaxSize())
         {
-            Header()
-            Spacer(modifier = Modifier.height(10.dp))
-            ListOfItems(modifier)
+            Header(isVisible)
+            ListOfItems(isVisible)
         }
     }
 }
 
 @Composable
-fun ToolBar() {
-    Row(modifier = Modifier.fillMaxWidth().padding(end = 35.dp)) {
+fun Header(isVisibleState : MutableState<Boolean>)
+{
+    Column(modifier = Modifier.fillMaxWidth().padding(top = 82.dp, start = 60.dp)) {
         Text(
-            text = "Выполнено — 5",
-            color = colorResource(R.color.tertiary)
+            text = "Мои дела",
+            style = AppTypography().titleLarge
         )
-        Spacer(modifier = Modifier.weight(1f))
-        Icon(
-            painter = painterResource(id = R.drawable.ic_eye),
-            contentDescription = "Don't display completed tasks",
-            tint = colorResource(id = R.color.blue),
-        )
+        ToolBar(isVisibleState)
     }
 }
 
 @Composable
-fun ListItem(text: String, taskStatus: TaskStatus, modifier: Modifier)
+fun ToolBar(isVisibleState: MutableState<Boolean>)
+{
+    Row(modifier = Modifier.fillMaxWidth().padding(end = 25.dp)) {
+        Text(
+            text = "Выполнено — 5",
+            color = colorResource(R.color.tertiary),
+            modifier = Modifier.align(Alignment.CenterVertically)
+        )
+        Spacer(modifier = Modifier.weight(1f))
+        IconButton({isVisibleState.value = !isVisibleState.value})
+        {
+            if(isVisibleState.value)
+            {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_eye_off),
+                    contentDescription = "Don't display completed tasks",
+                    tint = colorResource(id = R.color.blue)
+                )
+            }
+            else
+            {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_eye),
+                    contentDescription = "Don't display completed tasks",
+                    tint = colorResource(id = R.color.blue)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun ListOfItems(isVisibleState: MutableState<Boolean>)
+{
+
+    Column(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .background(Color.White, shape = RoundedCornerShape(12.dp))
+    )
+    {
+        ListItem(text = "Купить что-то", taskStatus = TaskStatus.Completed)
+        Spacer(modifier = Modifier.height(5.dp))
+        ListItem(text = "Купить что-то", taskStatus = TaskStatus.NotCompleted)
+        Spacer(modifier = Modifier.height(5.dp))
+        ListItem(text = "Купить что-то", taskStatus = TaskStatus.DeadlineAlmostOver)
+    }
+}
+
+@Composable
+fun ListItem(text: String, taskStatus: TaskStatus)
 {
     var isChecked : TaskStatus by remember { mutableStateOf(taskStatus) }
 
     Row(
-        modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
         verticalAlignment = Alignment.CenterVertically
     )
     {
-
+        //Код переделаю по возможности чуть позже. Сокрачу If-ы
         if(isChecked == TaskStatus.NotCompleted || isChecked == TaskStatus.DeadlineAlmostOver)
         {
             IconButton(onClick = {isChecked = TaskStatus.Completed})
             {
                 CheckboxIconLogic(isChecked)
+            }
+            if(isChecked == TaskStatus.DeadlineAlmostOver)
+            {
+                Row()
+                {
+                    Text(text = "!!",
+                        style = AppTypography().bodyMedium,
+                        color = colorResource(R.color.red))
+                    Spacer(Modifier.width(3.dp))
+                    Text(
+                        text = text,
+                        style = AppTypography().bodyMedium,
+                        color = colorResource(R.color.primary)
+                    )
+
+                }
+            }
+            else
+            {
+                Text(text = text,
+                    style = AppTypography().bodyMedium)
             }
         }
         else
@@ -128,13 +186,19 @@ fun ListItem(text: String, taskStatus: TaskStatus, modifier: Modifier)
             {
                 CheckboxIconLogic(isChecked)
             }
+            Text(
+                text = text,
+                style = TextStyle(
+                    fontFamily = robotoFontFamily,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = Color.Black,
+                    textDecoration = TextDecoration.LineThrough
+                ),
+                color = colorResource(R.color.tertiary)
+            )
         }
 
-        Spacer(modifier = Modifier.width(10.dp))
-        Text(
-            text = text,
-            style = AppTypography().bodyMedium
-        )
         Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = {})
         {
@@ -169,7 +233,7 @@ fun CheckboxIconLogic(isChecked: TaskStatus)
     else
     {
         Icon(
-            painter = painterResource(id = R.drawable.ic_checkbox_warning),
+            painter = painterResource(id = R.drawable.ic_unchecked),
             contentDescription = "Deadline almost over",
             tint = colorResource(R.color.red)
         )
@@ -180,32 +244,6 @@ fun CheckboxIconLogic(isChecked: TaskStatus)
 @Composable
 fun MainActivityPreview() {
     YandexToDoAppTheme {
-       WholeApp(modifier = Modifier)
-    }
-}
-
-@Composable
-fun ListOfItems(modifier: Modifier)
-{
-    Column(
-        modifier = modifier
-            .padding(8.dp)
-            .fillMaxWidth()
-            .background(Color.White, shape = RoundedCornerShape(12.dp))
-    )
-    {
-        ListItem("Купить что-то", taskStatus = TaskStatus.Completed, modifier = Modifier)
-        Spacer(modifier = Modifier.height(5.dp))
-        ListItem("Купить что-то", taskStatus = TaskStatus.NotCompleted, modifier = Modifier)
-        Spacer(modifier = Modifier.height(5.dp))
-        ListItem("Купить что-то", taskStatus = TaskStatus.DeadlineAlmostOver, modifier = Modifier)
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-fun PartialActivityPreview() {
-    YandexToDoAppTheme {
-        ListOfItems(Modifier)
+        WholeApp(modifier = Modifier)
     }
 }

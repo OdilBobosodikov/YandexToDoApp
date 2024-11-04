@@ -6,3 +6,10 @@ enum class TaskStatus
     Completed,
     DeadlineAlmostOver
 }
+
+enum class Importance
+{
+    Low,
+    Medium,
+    High
+}
