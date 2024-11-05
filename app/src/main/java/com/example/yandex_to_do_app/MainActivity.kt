@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
@@ -33,12 +37,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.repository.ToDoRepository
 import com.example.yandex_to_do_app.ui.theme.AppTypography
+import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 
@@ -63,7 +69,7 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun WholeApp(modifier: Modifier) {
     val isVisible = remember { mutableStateOf(false) }
-    val numberOfCompletedTasks = remember { mutableStateOf (toDoItemRepository.activeItemCount) }
+    val numberOfCompletedTasks = remember { mutableStateOf(toDoItemRepository.activeItemCount) }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -75,6 +81,7 @@ fun WholeApp(modifier: Modifier) {
             Header(isVisible, numberOfCompletedTasks)
             ListOfItems(isVisible, numberOfCompletedTasks)
         }
+        CreateNewTaskBottom()
     }
 }
 
@@ -98,7 +105,7 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(end = 25.dp)
+            .padding(end = 10.dp)
     ) {
         Text(
             text = "Выполнено — ${numberOfCompletedTasks.value}",
@@ -127,6 +134,7 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 
 @Composable
 fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
+
     LazyColumn(
         modifier = Modifier
             .padding(8.dp)
@@ -138,74 +146,87 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
             key = { _, item -> item.id }) { i, item ->
             if (!isVisibleState.value && !item.isCompleted) {
                 ListItem(item, numberOfCompletedTasks)
-                Spacer(modifier = Modifier.height(5.dp))
             } else if (isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks)
-                Spacer(modifier = Modifier.height(5.dp))
+            }
+            if (i == allToDoItems.value.count() - 1) {
+                Text(
+                    text = "Новое",
+                    modifier = Modifier
+                        .padding(horizontal = 48.dp, vertical = 15.dp),
+                    fontFamily = robotoFontFamily,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = colorResource(id = R.color.tertiary)
+                )
             }
         }
     }
 }
 
 @Composable
-fun ListItem(toDoItem: ToDoItem, numberOfCompletedTasks : MutableState<Int>) {
+fun ListItem(toDoItem: ToDoItem, numberOfCompletedTasks: MutableState<Int>) {
     val item = remember { mutableStateOf(toDoItem) }
     val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
-    val colorResId = remember { mutableStateOf(R.color.support_separator) }
+    val iconColorId = remember { mutableStateOf(R.color.support_separator) }
     val textColorResId = remember { mutableStateOf(R.color.primary) }
     val textDecoration = remember { mutableStateOf(TextDecoration.None) }
+    val isLowImportanceSet = remember { mutableStateOf(false) }
+
+    if (item.value.importance == Importance.Low) {
+        isLowImportanceSet.value = true
+    }
+
+    if (item.value.importance == Importance.High && !item.value.isCompleted) {
+        iconResId.value = R.drawable.ic_high_importance
+        textColorResId.value = R.color.red
+        textDecoration.value = TextDecoration.None
+        iconColorId.value = R.color.red
+    } else if (item.value.isCompleted) {
+        iconResId.value = R.drawable.ic_checked
+        textColorResId.value = R.color.tertiary
+        textDecoration.value = TextDecoration.LineThrough
+        iconColorId.value = R.color.green
+    }
+
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp),
+            .padding(top = 15.dp),
         verticalAlignment = Alignment.CenterVertically
     )
     {
         IconButton(onClick = {
             item.value.isCompleted = !item.value.isCompleted
-            if(toDoItemRepository.isDeadlineAlmostOver(item.value) && !item.value.isCompleted)
-            {
-                iconResId.value = R.drawable.ic_unchecked
-                colorResId.value = R.color.red
+            if (item.value.importance == Importance.High && !item.value.isCompleted) {
+                iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
+                iconColorId.value = R.color.red
                 textDecoration.value = TextDecoration.None
                 numberOfCompletedTasks.value -= 1
-            }
-            else if (item.value.isCompleted) {
+            } else if (item.value.isCompleted) {
+                isLowImportanceSet.value = false
                 iconResId.value = R.drawable.ic_checked
-                colorResId.value = R.color.green
                 textColorResId.value = R.color.tertiary
+                iconColorId.value = R.color.green
                 textDecoration.value = TextDecoration.LineThrough
                 numberOfCompletedTasks.value += 1
-            }
-            else {
+            } else {
                 iconResId.value = R.drawable.ic_unchecked
-                colorResId.value = R.color.support_separator
                 textColorResId.value = R.color.primary
+                iconColorId.value = R.color.support_separator
                 textDecoration.value = TextDecoration.None
                 numberOfCompletedTasks.value -= 1
             }
         })
         {
-            CheckboxIconLogic(item, iconResId, colorResId)
+            Icon(
+                painter = painterResource(id = iconResId.value),
+                contentDescription = "Check as completed",
+                tint = colorResource(iconColorId.value)
+            )
         }
-        if (toDoItemRepository.isDeadlineAlmostOver(item.value) && !item.value.isCompleted) {
-            textColorResId.value = R.color.red
-            Row()
-            {
-                Text(
-                    text = "!!",
-                    style = AppTypography().bodyMedium,
-                    color = colorResource(textColorResId.value)
-                )
-                Spacer(Modifier.width(3.dp))
-                Text(
-                    text = item.value.text,
-                    style = AppTypography().bodyMedium,
-                    color = colorResource(R.color.primary)
-                )
-            }
-        } else if (item.value.isCompleted) {
+        if (item.value.isCompleted) {
             textDecoration.value = TextDecoration.LineThrough
             textColorResId.value = R.color.tertiary
             Text(
@@ -216,16 +237,40 @@ fun ListItem(toDoItem: ToDoItem, numberOfCompletedTasks : MutableState<Int>) {
                     fontWeight = FontWeight.Normal,
                     color = colorResource(textColorResId.value),
                     textDecoration = textDecoration.value
-                )
+                ),
+                maxLines = 3,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.width(270.dp)
             )
         } else {
-            Text(
-                text = item.value.text,
-                style = AppTypography().bodyMedium,
-                color = colorResource(textColorResId.value)
-            )
+            Row()
+            {
+                if (item.value.importance == Importance.High && !item.value.isCompleted) {
+                    textColorResId.value = R.color.red
+                    Text(
+                        text = "!!",
+                        style = AppTypography().bodyMedium,
+                        color = colorResource(textColorResId.value),
+                    )
+                    Spacer(Modifier.width(3.dp))
+                } else if (isLowImportanceSet.value) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_low_importance),
+                        contentDescription = "Low Importance",
+                        tint = colorResource(id = R.color.grey_light),
+                        modifier = Modifier.padding(top = 3.dp)
+                    )
+                }
+                Text(
+                    text = item.value.text,
+                    style = AppTypography().bodyMedium,
+                    color = colorResource(R.color.primary),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(270.dp)
+                )
+            }
         }
-
         Spacer(modifier = Modifier.weight(1f))
         IconButton(onClick = {})
         {
@@ -239,31 +284,27 @@ fun ListItem(toDoItem: ToDoItem, numberOfCompletedTasks : MutableState<Int>) {
 }
 
 @Composable
-fun CheckboxIconLogic(item: MutableState<ToDoItem>, pointerResId: MutableState<Int>, colorResId: MutableState<Int>) {
-    if (toDoItemRepository.isDeadlineAlmostOver(item.value) && !item.value.isCompleted) {
-        colorResId.value = R.color.red
-        Icon(
-            painter = painterResource(id = pointerResId.value),
-            contentDescription = "Deadline almost over",
-            tint = colorResource(id = colorResId.value)
-        )
-    } else if (!item.value.isCompleted) {
-        Icon(
-            painter = painterResource(id = pointerResId.value),
-            contentDescription = "Task not completed",
-            tint = colorResource(id = colorResId.value)
-        )
-    } else {
-        colorResId.value = R.color.green
-        pointerResId.value = R.drawable.ic_checked
-        Icon(
-            painter = painterResource(id = pointerResId.value),
-            contentDescription = "Task completed",
-            tint = colorResource(id = colorResId.value)
-        )
+fun CreateNewTaskBottom() {
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        FloatingActionButton(
+            onClick = { },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(bottom = 25.dp, end = 10.dp)
+                .size(56.dp),
+            containerColor = colorResource(R.color.blue),
+            shape = CircleShape,
+
+            ) {
+            Icon(
+                imageVector = Icons.Default.Add,
+                contentDescription = "Add",
+                tint = Color.White
+            )
+        }
     }
-
-
 }
 
 @Preview(showBackground = true, showSystemUi = true)

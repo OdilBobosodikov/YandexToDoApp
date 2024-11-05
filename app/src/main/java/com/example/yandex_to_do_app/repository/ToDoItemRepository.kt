@@ -17,7 +17,7 @@ interface ToDoItemRepository {
 class ToDoRepository() : ToDoItemRepository
 {
     private val items = mutableStateOf(
-       mutableListOf(ToDoItem(0, "Купить что-то", Importance.Medium, Date(2024, 4, 30),
+       mutableListOf(ToDoItem(0, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов", Importance.None, Date(2024, 4, 30),
            false , Date(2024, 4, 25), Date(2024, 4, 30)),
 
            ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
@@ -27,8 +27,30 @@ class ToDoRepository() : ToDoItemRepository
                Importance.High, Date(2024, 4, 30),
                true , Date(2024, 4, 28), Date(2024, 4, 28)),
 
-           ToDoItem(3, "Купить что-то", Importance.Medium, Date(2024, 11, 8),
-               false , Date(2024, 11, 1), Date(2024, 11, 1)))
+           ToDoItem(3, "Купить что-то", Importance.None, Date(2024, 11, 8),
+               false , Date(2024, 11, 1), Date(2024, 11, 1)),
+
+           ToDoItem(4, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
+               false , Date(2024, 4, 20), Date(2024, 4, 20)),
+
+           ToDoItem(5, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+               Importance.High, Date(2024, 4, 30),
+               false , Date(2024, 4, 28), Date(2024, 4, 28)),
+
+           ToDoItem(6, "Купить что-то", Importance.None, Date(2024, 11, 8),
+               false , Date(2024, 11, 1), Date(2024, 11, 1)),
+
+           ToDoItem(7, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
+               true , Date(2024, 4, 20), Date(2024, 4, 20)),
+
+           ToDoItem(8, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+               Importance.High, Date(2024, 4, 30),
+               true , Date(2024, 4, 28), Date(2024, 4, 28)),
+
+           ToDoItem(9, "Купить что-то", Importance.None, Date(2024, 11, 8),
+               false , Date(2024, 11, 1), Date(2024, 11, 1))
+       )
+
     )
 
     override fun getItemById(userId: Int): ToDoItem? {
