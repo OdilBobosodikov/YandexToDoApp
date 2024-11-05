@@ -1,5 +1,7 @@
 package com.example.yandex_to_do_app.repository
 
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
 import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.ui.theme.Importance
 import java.time.LocalDate
@@ -7,42 +9,42 @@ import java.util.Date
 
 interface ToDoItemRepository {
     fun getItemById(userId: Int): ToDoItem?
-    fun getAllToDoItems(): List<ToDoItem>
+    fun getAllToDoItems(): MutableState<MutableList<ToDoItem>>
     fun addToDoItem(item: ToDoItem)
     fun deleteToDoItem(item: ToDoItem)
 }
 
 class ToDoRepository() : ToDoItemRepository
 {
-    private val items : MutableList<ToDoItem> = mutableListOf(
-        ToDoItem(0, "Купить что-то", Importance.Medium, Date(2024, 4, 30),
-            false , Date(2024, 4, 25), Date(2024, 4, 30)),
+    private val items = mutableStateOf(
+       mutableListOf(ToDoItem(0, "Купить что-то", Importance.Medium, Date(2024, 4, 30),
+           false , Date(2024, 4, 25), Date(2024, 4, 30)),
 
-        ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
-            true , Date(2024, 4, 20), Date(2024, 4, 20)),
+           ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(2023, 4, 30),
+               true , Date(2024, 4, 20), Date(2024, 4, 20)),
 
-        ToDoItem(2, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
-            Importance.High, Date(2024, 4, 30),
-            true , Date(2024, 4, 28), Date(2024, 4, 28)),
+           ToDoItem(2, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+               Importance.High, Date(2024, 4, 30),
+               true , Date(2024, 4, 28), Date(2024, 4, 28)),
 
-        ToDoItem(3, "Купить что-то", Importance.Medium, Date(2024, 11, 8),
-            false , Date(2024, 11, 1), Date(2024, 11, 1))
+           ToDoItem(3, "Купить что-то", Importance.Medium, Date(2024, 11, 8),
+               false , Date(2024, 11, 1), Date(2024, 11, 1)))
     )
 
     override fun getItemById(userId: Int): ToDoItem? {
-        return items.get(userId)
+        return items.value.get(userId)
     }
 
-    override fun getAllToDoItems(): List<ToDoItem> {
+    override fun getAllToDoItems(): MutableState<MutableList<ToDoItem>> {
         return items
     }
 
     override fun addToDoItem(item: ToDoItem) {
-        items.add(item)
+        items.value.add(item)
     }
 
     override fun deleteToDoItem(item: ToDoItem) {
-        items.remove(item)
+        items.value.remove(item)
     }
 
 
@@ -62,9 +64,6 @@ class ToDoRepository() : ToDoItemRepository
         return false
     }
 
-    fun countCompletedItems() : Int
-    {
-        return items.count() {it.isCompleted}
-    }
-
+    val activeItemCount: Int
+        get() = items.value.count() {it.isCompleted}
 }
