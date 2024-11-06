@@ -4,12 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
+import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 
 
 class MainActivity : ComponentActivity() {
@@ -24,6 +23,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
+            val viewModel = ToDoViewModel()
             YandexToDoAppTheme {
                 NavHost(navController, Route.mainScreen)
                 {
@@ -31,23 +31,30 @@ class MainActivity : ComponentActivity() {
                     {
                         MainScreen(
                             createTask = {
-                                navController.navigate(Route.formScreen) },
+                                navController.navigate(Route.formScreen)
+                            },
                             updateTask = { toDoItem ->
                                 navController.navigate("formScreen/${toDoItem.id}")
-                            }
+                            },
+                            viewModel
                         )
                     }
 
-                    composable("${Route.formScreen}/{toDoItemId}", arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })) {
+                    composable(
+                        "${Route.formScreen}/{toDoItemId}",
+                        arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })
+                    ) {
                         val toDoItemId = it.arguments?.getInt("toDoItemId") ?: -1
                         FormScreen(
                             navController = navController,
-                            toDoItemId = toDoItemId
+                            toDoItemId = toDoItemId,
+                            viewModel
                         )
                     }
                     composable(Route.formScreen) {
                         FormScreen(
-                            navController = navController
+                            navController = navController,
+                            viewModel = viewModel
                         )
                     }
                 }

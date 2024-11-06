@@ -2,43 +2,65 @@ package com.example.yandex_to_do_app.repository
 
 import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.ui.theme.Importance
-import java.time.LocalDate
 import java.util.Date
 
 interface ToDoItemRepository {
-    fun getItemById(userId: Int): ToDoItem?
+    fun getItemById(userId: Int): ToDoItem
     fun getAllToDoItems(): MutableList<ToDoItem>
     fun addToDoItem(item: ToDoItem)
     fun deleteToDoItem(item: ToDoItem)
-    fun updateItem(item:  ToDoItem)
+    fun updateToDoItem(item:  ToDoItem)
 }
 
 class ToDoRepository() : ToDoItemRepository
 {
-    private val items = mutableListOf(
-        ToDoItem(0, "Купить что-то",
+    private val items = mutableListOf<ToDoItem>(
+        ToDoItem(0, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
             Importance.None, Date(),
-           false ,Date(), Date()),
+            false , Date(), Date()
+        ),
 
-        ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно",
-            Importance.Low, Date(),
-            false , Date(), Date()),
+        ToDoItem(1, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(),
+            true , Date(), Date()
+        ),
 
-        ToDoItem(2, "Купить что-то, где-то",
+        ToDoItem(2, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
             Importance.High, Date(),
-            false , Date(), Date()),
+            true , Date(), Date()
+        ),
 
-        ToDoItem(3, "Купить что-то, где-то, зачем-то, но зачем не очень понятно",
-            Importance.None, Date(),
-            true , Date(), Date()),
+        ToDoItem(3, "Купить что-то", Importance.None, Date(),
+            false , Date(), Date()
+        ),
 
-        ToDoItem(4, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
-            Importance.None, Date(),
-            true , Date(), Date()),
+        ToDoItem(4, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(),
+            false , Date(), Date()
+        ),
 
+        ToDoItem(5, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+            Importance.High, Date(),
+            false , Date(), Date()
+        ),
+
+        ToDoItem(6, "Купить что-то", Importance.None, Date(),
+            false , Date(), Date()
+        ),
+
+        ToDoItem(7, "Купить что-то, где-то, зачем-то, но зачем не очень понятно", Importance.Low, Date(),
+            true , Date(), Date()
+        ),
+
+        ToDoItem(8, "Купить что-то, где-то, зачем-то, но зачем не очень понятно, но точно чтобы показать как обрабатываются большое количество слов",
+            Importance.High, Date(),
+            true , Date(), Date()
+        ),
+
+        ToDoItem(9, "Купить что-то", Importance.None, Date(),
+            false , Date(), Date()
+        )
     )
 
-    override fun getItemById(userId: Int): ToDoItem? {
+    override fun getItemById(userId: Int): ToDoItem {
         return items.get(userId)
     }
 
@@ -54,10 +76,7 @@ class ToDoRepository() : ToDoItemRepository
         items.remove(item)
     }
 
-    val activeItemCount: Int
-        get() = items.count() {it.isCompleted}
-
-    override fun updateItem(item: ToDoItem) {
+    override fun updateToDoItem(item: ToDoItem) {
         items.set(item.id, ToDoItem(id = item.id, text = item.text, importance = item.importance,
             deadline = item.deadline, isCompleted = item.isCompleted,
             createdAt = item.createdAt, modifiedAt = item.modifiedAt))

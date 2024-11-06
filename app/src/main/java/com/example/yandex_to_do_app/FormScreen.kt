@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -36,35 +37,42 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
+import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
-import com.example.yandex_to_do_app.repository.ToDoRepository
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import java.text.SimpleDateFormat
-import java.time.LocalDate
 import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 
-private val toDoItemRepository = ToDoRepository()
 
 @Composable
-fun FormScreen(navController: NavController, toDoItemId: Int = -1) {
+fun FormScreen(navController: NavController,
+               toDoItemId: Int = -1,
+               viewModel: ToDoViewModel = ToDoViewModel()) {
 
     val textState = remember { mutableStateOf("") }
     val importanceState = remember { mutableStateOf(Importance.None) }
-    val dateState : MutableState<Date?> = remember { mutableStateOf(null) }
+    val completionState = remember { mutableStateOf(false) }
+    val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
+    var toDoItemId = toDoItemId
+
     if (toDoItemId != -1) {
-        val item: ToDoItem? = toDoItemRepository.getItemById(toDoItemId)
-        if (item != null) {
+        val item: ToDoItem? = viewModel.getItemById(toDoItemId)
+        if(item != null)
+        {
             textState.value = item.text
             importanceState.value = item.importance
-            dateState.value = item.deadline
+            deadlineDateState.value = item.deadline
+            toDoItemId = item.id
+            completionState.value = item.isCompleted
         }
     }
 
@@ -74,7 +82,49 @@ fun FormScreen(navController: NavController, toDoItemId: Int = -1) {
             .padding(vertical = 50.dp, horizontal = 20.dp)
     )
     {
-        Header(navController)
+        Row(modifier = Modifier.fillMaxWidth())
+        {
+            IconButton(
+                { navController.popBackStack() },
+                modifier = Modifier.size(24.dp)
+            )
+            {
+                Icon(Icons.Filled.Close, contentDescription = "Close")
+            }
+            Spacer(Modifier.weight(1f))
+            Text(
+                "CОХРАНИТЬ",
+                color = colorResource(R.color.blue),
+                modifier = Modifier.align(Alignment.CenterVertically)
+                    .clickable {
+                        if(toDoItemId != -1)
+                        {
+                            viewModel.updateToDoItem(
+                                ToDoItem(
+                                    id = toDoItemId,
+                                    text = textState.value,
+                                    importance = importanceState.value,
+                                    deadline = deadlineDateState.value,
+                                    isCompleted = completionState.value,
+                                    createdAt = Date(),
+                                    modifiedAt = Date()
+                                )
+                            )
+                            navController.popBackStack()
+                        }
+                        else
+                        {
+                            viewModel.addToDoItem(
+                                text = textState.value,
+                                importance = importanceState.value,
+                                deadline = deadlineDateState.value,
+                            )
+                            navController.popBackStack()
+                        }
+                    }
+            )
+        }
+
         Spacer(modifier = Modifier.height(20.dp))
         TextSection(textState)
         Spacer(modifier = Modifier.height(20.dp))
@@ -82,7 +132,11 @@ fun FormScreen(navController: NavController, toDoItemId: Int = -1) {
         Spacer(modifier = Modifier.height(20.dp))
         Divider()
         Spacer(modifier = Modifier.height(20.dp))
-        DateSection(dateState)
+        DateSection(deadlineDateState)
+        Spacer(modifier = Modifier.height(20.dp))
+        Divider()
+        Spacer(modifier = Modifier.height(20.dp))
+        DeleteSection(toDoItemId, navController, viewModel)
     }
 }
 
@@ -156,23 +210,46 @@ fun DateSection(dateState: MutableState<Date?>) {
     }
 }
 
+
 @Composable
-fun Header(navController: NavController) {
-    Row(modifier = Modifier.fillMaxWidth())
-    {
-        IconButton(
-            { navController.popBackStack() },
-            modifier = Modifier.size(24.dp)
+fun DeleteSection(itemId: Int, navController: NavController, viewModel: ToDoViewModel) {
+    if (itemId != -1) {
+        Row(
+            modifier = Modifier.clickable {
+                val item = viewModel.getItemById(itemId)
+                viewModel.deleteToDoItem(item)
+                navController.popBackStack()
+            },
+            verticalAlignment = Alignment.CenterVertically
         )
         {
-            Icon(Icons.Filled.Close, contentDescription = "Close")
+            Icon(
+                painter = painterResource(R.drawable.ic_trash),
+                tint = colorResource(R.color.red),
+                contentDescription = "Delete Task"
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "Удалить",
+                style = AppTypography().bodyMedium,
+                color = colorResource(R.color.red)
+            )
         }
-        Spacer(Modifier.weight(1f))
-        Text(
-            "CОХРАНИТЬ",
-            color = colorResource(R.color.blue),
-            modifier = Modifier.align(Alignment.CenterVertically)
-        )
+    } else {
+        Row(verticalAlignment = Alignment.CenterVertically)
+        {
+            Icon(
+                painter = painterResource(R.drawable.ic_trash),
+                tint = colorResource(R.color.disable),
+                contentDescription = "Delete Task"
+            )
+            Spacer(modifier = Modifier.width(5.dp))
+            Text(
+                text = "Удалить",
+                style = AppTypography().bodyMedium,
+                color = colorResource(R.color.disable)
+            )
+        }
     }
 }
 

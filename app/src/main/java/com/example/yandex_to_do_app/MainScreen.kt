@@ -1,7 +1,6 @@
 package com.example.yandex_to_do_app
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,14 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -45,21 +42,21 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.yandex_to_do_app.MainActivity.Route
+import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
-import com.example.yandex_to_do_app.repository.ToDoRepository
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 
-private val toDoItemRepository = ToDoRepository()
-private val allToDoItems = toDoItemRepository.getAllToDoItems()
 
 @Composable
 fun MainScreen(createTask: () -> Unit,
-               updateTask: (ToDoItem) -> Unit) {
+               updateTask: (ToDoItem) -> Unit,
+               viewModel: ToDoViewModel = ToDoViewModel()) {
     val isVisible = remember { mutableStateOf(false) }
-    val numberOfCompletedTasks = remember { mutableStateOf(toDoItemRepository.activeItemCount) }
+
+    val numberOfCompletedTasks = remember { mutableStateOf(viewModel.completedItemCount) }
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -69,7 +66,7 @@ fun MainScreen(createTask: () -> Unit,
         Column(modifier = Modifier.fillMaxSize())
         {
             Header(isVisible, numberOfCompletedTasks)
-            ListOfItems(isVisible, numberOfCompletedTasks, updateTask)
+            ListOfItems(isVisible, numberOfCompletedTasks, updateTask, viewModel)
         }
         CreateNewTaskBottom(createTask)
     }
@@ -123,7 +120,12 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 }
 
 @Composable
-fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>, updateTask: (ToDoItem) -> Unit) {
+fun ListOfItems(isVisibleState: MutableState<Boolean>,
+                numberOfCompletedTasks: MutableState<Int>,
+                updateTask: (ToDoItem) -> Unit,
+                viewModel: ToDoViewModel) {
+
+    val todoItems = viewModel.todoItems.value
 
     LazyColumn(
         modifier = Modifier
@@ -134,12 +136,12 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
     {
 
         itemsIndexed(
-            allToDoItems,
+            todoItems,
             key = { _, item -> item.id }) { i, item ->
             if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
-                ListItem(item, numberOfCompletedTasks, updateTask)
+                ListItem(item, numberOfCompletedTasks, updateTask, viewModel)
             }
-            if (i == allToDoItems.count() - 1) {
+            if (i == todoItems.count() - 1 || todoItems.count() == 0) {
                 Text(
                     text = "Новое",
                     modifier = Modifier
@@ -158,7 +160,8 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
 fun ListItem(
     toDoItem: ToDoItem,
     numberOfCompletedTasks: MutableState<Int>,
-    updateTask: (ToDoItem) -> Unit
+    updateTask: (ToDoItem) -> Unit,
+    viewModel: ToDoViewModel
 ) {
 
     val item = remember { mutableStateOf(toDoItem) }
@@ -194,7 +197,7 @@ fun ListItem(
         IconButton(onClick =
         {
             isTaskCompleted.value = !isTaskCompleted.value
-            toDoItemRepository.updateItemCompletionStatus(item.value, isTaskCompleted.value)
+            viewModel.updateItemCompletionStatus(item.value, isTaskCompleted.value)
             if (item.value.importance == Importance.High && !isTaskCompleted.value) {
                 iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
