@@ -135,37 +135,39 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 @Composable
 fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
 
-    LazyColumn(
+     LazyColumn(
         modifier = Modifier
             .padding(8.dp)
             .fillMaxWidth()
             .background(Color.White, shape = RoundedCornerShape(12.dp))
     )
     {
-        itemsIndexed(allToDoItems.value,
+
+        itemsIndexed(
+            allToDoItems.value,
             key = { _, item -> item.id }) { i, item ->
-            if (!isVisibleState.value && !item.isCompleted) {
+            if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks)
-            } else if (isVisibleState.value) {
-                ListItem(item, numberOfCompletedTasks)
-            }
-            if (i == allToDoItems.value.count() - 1) {
-                Text(
-                    text = "Новое",
-                    modifier = Modifier
-                        .padding(horizontal = 48.dp, vertical = 15.dp),
-                    fontFamily = robotoFontFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colorResource(id = R.color.tertiary)
-                )
+                if (i == allToDoItems.value.count() - 1) {
+                    Text(
+                        text = "Новое",
+                        modifier = Modifier
+                            .padding(horizontal = 48.dp, vertical = 15.dp),
+                        fontFamily = robotoFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = colorResource(id = R.color.tertiary)
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun ListItem(toDoItem: ToDoItem, numberOfCompletedTasks: MutableState<Int>) {
+fun ListItem(toDoItem: ToDoItem,
+             numberOfCompletedTasks: MutableState<Int>) {
+
     val item = remember { mutableStateOf(toDoItem) }
     val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
     val iconColorId = remember { mutableStateOf(R.color.support_separator) }

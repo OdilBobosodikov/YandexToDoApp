@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Yandex-To-Do-App</string>
+    <string name="title_activity_form_creation">FormCreationActivity</string>
 </resources>
