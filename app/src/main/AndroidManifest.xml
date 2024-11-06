@@ -13,11 +13,6 @@
         android:theme="@style/Theme.YandexToDoApp"
         tools:targetApi="31">
         <activity
-            android:name=".FormCreationActivity"
-            android:exported="false"
-            android:label="@string/title_activity_form_creation"
-            android:theme="@style/Theme.YandexToDoApp" />
-        <activity
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
