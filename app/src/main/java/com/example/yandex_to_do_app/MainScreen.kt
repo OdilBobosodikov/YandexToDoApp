@@ -127,28 +127,16 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
 
     LazyColumn(
         modifier = Modifier
-            .padding(8.dp)
             .fillMaxWidth()
             .background(Color.White, shape = RoundedCornerShape(12.dp))
     )
     {
 
         itemsIndexed(
-            allToDoItems.value,
+            allToDoItems,
             key = { _, item -> item.id }) { i, item ->
             if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks, updateTask)
-                if (i == allToDoItems.value.count() - 1) {
-                    Text(
-                        text = "Новое",
-                        modifier = Modifier
-                            .padding(horizontal = 48.dp, vertical = 15.dp),
-                        fontFamily = robotoFontFamily,
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Normal,
-                        color = colorResource(id = R.color.tertiary)
-                    )
-                }
             }
         }
     }
@@ -167,17 +155,17 @@ fun ListItem(
     val textColorResId = remember { mutableStateOf(R.color.primary) }
     val textDecoration = remember { mutableStateOf(TextDecoration.None) }
     val isLowImportanceSet = remember { mutableStateOf(false) }
-
+    val isTaskCompleted = remember { mutableStateOf(item.value.isCompleted) }
     if (item.value.importance == Importance.Low) {
         isLowImportanceSet.value = true
     }
 
-    if (item.value.importance == Importance.High && !item.value.isCompleted) {
+    if (item.value.importance == Importance.High && !isTaskCompleted.value) {
         iconResId.value = R.drawable.ic_high_importance
         textColorResId.value = R.color.red
         textDecoration.value = TextDecoration.None
         iconColorId.value = R.color.red
-    } else if (item.value.isCompleted) {
+    } else if (isTaskCompleted.value) {
         iconResId.value = R.drawable.ic_checked
         textColorResId.value = R.color.tertiary
         textDecoration.value = TextDecoration.LineThrough
@@ -191,18 +179,17 @@ fun ListItem(
         verticalAlignment = Alignment.CenterVertically
     )
     {
-        IconButton(onClick = {
-            item.value.isCompleted = !item.value.isCompleted
-            if (item.value.importance == Importance.High && !item.value.isCompleted) {
-                if (item.value.importance == Importance.Low) {
-                    isLowImportanceSet.value = true
-                }
+        IconButton(onClick =
+        {
+            isTaskCompleted.value = !isTaskCompleted.value
+            toDoItemRepository.updateItemCompletionStatus(item.value, isTaskCompleted.value)
+            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
                 iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
                 iconColorId.value = R.color.red
                 textDecoration.value = TextDecoration.None
                 numberOfCompletedTasks.value -= 1
-            } else if (item.value.isCompleted) {
+            } else if (isTaskCompleted.value) {
                 isLowImportanceSet.value = false
                 iconResId.value = R.drawable.ic_checked
                 textColorResId.value = R.color.tertiary
@@ -210,9 +197,6 @@ fun ListItem(
                 textDecoration.value = TextDecoration.LineThrough
                 numberOfCompletedTasks.value += 1
             } else {
-                if (item.value.importance == Importance.Low) {
-                    isLowImportanceSet.value = true
-                }
                 iconResId.value = R.drawable.ic_unchecked
                 textColorResId.value = R.color.primary
                 iconColorId.value = R.color.support_separator
@@ -227,7 +211,7 @@ fun ListItem(
                 tint = colorResource(iconColorId.value)
             )
         }
-        if (item.value.isCompleted) {
+        if (isTaskCompleted.value) {
             textDecoration.value = TextDecoration.LineThrough
             textColorResId.value = R.color.tertiary
             Text(
@@ -244,7 +228,7 @@ fun ListItem(
                 modifier = Modifier.width(270.dp)
             )
         } else {
-            if (item.value.importance == Importance.High && !item.value.isCompleted) {
+            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
                 Row()
                 {
                     textColorResId.value = R.color.red
