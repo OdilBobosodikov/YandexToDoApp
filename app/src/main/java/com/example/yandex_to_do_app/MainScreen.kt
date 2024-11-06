@@ -1,6 +1,7 @@
 package com.example.yandex_to_do_app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,17 +17,20 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
@@ -292,8 +296,17 @@ fun ListItem(
                 )
             }
         }
+        val isUpdatingTask  = remember { mutableStateOf(false) }
+
         Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = {updateTask(item.value)})
+        IconButton(onClick = {
+            if(!isUpdatingTask.value)
+            {
+                isUpdatingTask.value = true
+                updateTask(item.value)
+            }
+        },
+            enabled = !isUpdatingTask.value)
         {
             Icon(
                 painter = painterResource(id = R.drawable.ic_info),
@@ -307,15 +320,24 @@ fun ListItem(
 
 @Composable
 fun CreateNewTaskBottom(createTask: () -> Unit) {
+    val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         FloatingActionButton(
-            onClick = {createTask()},
+            onClick = {
+                if (!isCreatingTask.value) {
+                    isCreatingTask.value = true
+                    createTask()
+                }
+            },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(bottom = 25.dp, end = 10.dp)
-                .size(56.dp),
+                .size(56.dp)
+                .then(
+                    if (isCreatingTask.value) Modifier.pointerInput(Unit) { } else Modifier
+                ),
             containerColor = colorResource(R.color.blue),
             shape = CircleShape,
         ) {
