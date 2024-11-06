@@ -128,6 +128,7 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
     LazyColumn(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(8.dp)
             .background(Color.White, shape = RoundedCornerShape(12.dp))
     )
     {
@@ -137,6 +138,17 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: M
             key = { _, item -> item.id }) { i, item ->
             if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks, updateTask)
+            }
+            if (i == allToDoItems.count() - 1) {
+                Text(
+                    text = "Новое",
+                    modifier = Modifier
+                        .padding(horizontal = 48.dp, vertical = 15.dp),
+                    fontFamily = robotoFontFamily,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Normal,
+                    color = colorResource(id = R.color.tertiary)
+                )
             }
         }
     }
@@ -257,7 +269,6 @@ fun ListItem(
                         tint = colorResource(id = R.color.grey_light),
                         modifier = Modifier.padding(top = 3.dp)
                     )
-                    Spacer(Modifier.width(3.dp))
                     Text(
                         text = item.value.text,
                         style = AppTypography().bodyMedium,

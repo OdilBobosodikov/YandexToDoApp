@@ -8,8 +8,8 @@ data class ToDoItem(
     val id: Int,
     val text: String,
     val importance: Importance,
-    val deadline: Date,
+    val deadline: Date?,
     val isCompleted: Boolean,
     val createdAt: Date,
-    val modifiedAt: Date
+    val modifiedAt: Date?
 )
