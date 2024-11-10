@@ -3,14 +3,14 @@ package com.example.yandex_to_do_app.ViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
-import com.example.yandex_to_do_app.repository.ToDoRepository
+import com.example.yandex_to_do_app.repository.ToDoItemRepositoryImp
 import com.example.yandex_to_do_app.ui.theme.Importance
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class ToDoViewModel : ViewModel() {
-    private val repository = ToDoRepository()
+    private val repository = ToDoItemRepositoryImp()
     val todoItems = mutableStateOf(repository.getAllToDoItems().toList())
 
     fun addToDoItem(text: String, importance: Importance, deadline: Date?) {

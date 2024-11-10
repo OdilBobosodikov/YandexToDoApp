@@ -1,18 +1,11 @@
 package com.example.yandex_to_do_app.repository
 
+import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.ui.theme.Importance
 import java.util.Date
 
-interface ToDoItemRepository {
-    fun getItemById(userId: Int): ToDoItem?
-    fun getAllToDoItems(): MutableList<ToDoItem>
-    fun addToDoItem(item: ToDoItem)
-    fun deleteToDoItemById(id: Int)
-    fun updateToDoItem(item: ToDoItem)
-}
-
-class ToDoRepository() : ToDoItemRepository {
+class ToDoItemRepositoryImp() : ToDoItemRepository {
     private val items = mutableListOf<ToDoItem>(
         ToDoItem(
             0,
@@ -120,5 +113,4 @@ class ToDoRepository() : ToDoItemRepository {
             items[index] = item.copy(modifiedAt = Date(), isCompleted = completionStatus)
         }
     }
-
 }
