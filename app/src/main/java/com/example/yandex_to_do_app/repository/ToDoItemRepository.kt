@@ -106,23 +106,19 @@ class ToDoRepository() : ToDoItemRepository {
     }
 
     override fun updateToDoItem(item: ToDoItem) {
-        items.set(
-            item.id, ToDoItem(
-                id = item.id, text = item.text, importance = item.importance,
-                deadline = item.deadline, isCompleted = item.isCompleted,
-                createdAt = item.createdAt, modifiedAt = item.modifiedAt
-            )
-        )
+        val index = items.indexOfFirst { it.id == item.id }
+        if (index != -1)
+        {
+            items[index] = item.copy(modifiedAt = Date())
+        }
     }
 
-    fun updateItemCompletionStatus(value: ToDoItem, completionStatus: Boolean) {
-        items.set(
-            value.id, ToDoItem(
-                id = value.id, text = value.text, importance = value.importance,
-                deadline = value.deadline, isCompleted = completionStatus,
-                createdAt = value.createdAt, modifiedAt = value.modifiedAt
-            )
-        )
+    fun updateItemCompletionStatus(item: ToDoItem, completionStatus: Boolean) {
+        val index = items.indexOfFirst { it.id == item.id }
+        if (index != -1)
+        {
+            items[index] = item.copy(modifiedAt = Date(), isCompleted = completionStatus)
+        }
     }
 
 }
