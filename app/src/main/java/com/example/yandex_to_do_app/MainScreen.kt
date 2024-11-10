@@ -51,9 +51,11 @@ import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 
 
 @Composable
-fun MainScreen(createTask: () -> Unit,
-               updateTask: (ToDoItem) -> Unit,
-               viewModel: ToDoViewModel = ToDoViewModel()) {
+fun MainScreen(
+    createTask: () -> Unit,
+    updateTask: (ToDoItem) -> Unit,
+    viewModel: ToDoViewModel = ToDoViewModel()
+) {
     val isVisible = remember { mutableStateOf(false) }
 
     val numberOfCompletedTasks = remember { mutableStateOf(viewModel.completedItemCount) }
@@ -120,10 +122,12 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 }
 
 @Composable
-fun ListOfItems(isVisibleState: MutableState<Boolean>,
-                numberOfCompletedTasks: MutableState<Int>,
-                updateTask: (ToDoItem) -> Unit,
-                viewModel: ToDoViewModel) {
+fun ListOfItems(
+    isVisibleState: MutableState<Boolean>,
+    numberOfCompletedTasks: MutableState<Int>,
+    updateTask: (ToDoItem) -> Unit,
+    viewModel: ToDoViewModel
+) {
 
     val todoItems = viewModel.todoItems.value
 
@@ -141,7 +145,7 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>,
             if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks, updateTask, viewModel)
             }
-            if (i == todoItems.count() - 1 || todoItems.count() == 0) {
+            if (i == todoItems.lastIndex || todoItems.isEmpty()) {
                 Text(
                     text = "Новое",
                     modifier = Modifier
@@ -226,85 +230,75 @@ fun ListItem(
                 tint = colorResource(iconColorId.value)
             )
         }
-        if (isTaskCompleted.value) {
-            textDecoration.value = TextDecoration.LineThrough
-            textColorResId.value = R.color.tertiary
-            Text(
-                text = item.value.text,
-                style = TextStyle(
-                    fontFamily = robotoFontFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colorResource(textColorResId.value),
-                    textDecoration = textDecoration.value
-                ),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.width(270.dp)
-            )
-        } else {
+
+        Row()
+        {
             if (item.value.importance == Importance.High && !isTaskCompleted.value) {
-                Row()
-                {
-                    textColorResId.value = R.color.red
-                    Text(
-                        text = "!!",
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(textColorResId.value),
-                    )
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        text = item.value.text,
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.primary),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.width(270.dp)
-                    )
-                }
-            } else if (isLowImportanceSet.value) {
-                Row()
-                {
-                    textColorResId.value = R.color.red
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_low_importance),
-                        contentDescription = "Low Importance",
-                        tint = colorResource(id = R.color.grey_light),
-                        modifier = Modifier.padding(top = 3.dp)
-                    )
-                    Text(
-                        text = item.value.text,
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.primary),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.width(270.dp)
-                    )
-                }
-            }
-            else
-            {
+                textColorResId.value = R.color.red
                 Text(
-                    text = item.value.text,
+                    text = "!!",
                     style = AppTypography().bodyMedium,
-                    color = colorResource(R.color.primary),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(270.dp)
+                    color = colorResource(textColorResId.value),
+                )
+                Spacer(Modifier.width(3.dp))
+            } else if (isLowImportanceSet.value && !isTaskCompleted.value) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_low_importance),
+                    contentDescription = "Low Importance",
+                    tint = colorResource(id = R.color.grey_light),
+                    modifier = Modifier.padding(top = 3.dp)
                 )
             }
+            Column {
+                if (isTaskCompleted.value) {
+                    textDecoration.value = TextDecoration.LineThrough
+                    textColorResId.value = R.color.tertiary
+                    Text(
+                        text = item.value.text,
+                        style = TextStyle(
+                            fontFamily = robotoFontFamily,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colorResource(textColorResId.value),
+                            textDecoration = textDecoration.value
+                        ),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(270.dp)
+                    )
+                }
+                else
+                {
+                    Text(
+                        text = item.value.text,
+                        style = AppTypography().bodyMedium,
+                        color = colorResource(R.color.primary),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(270.dp)
+                    )
+                }
+                if (item.value.deadline != null) {
+                    Text(
+                        text = viewModel.getFormattedDeadline(item.value.deadline),
+                        style = AppTypography().headlineSmall,
+                        color = colorResource(R.color.tertiary)
+                    )
+                }
+            }
         }
-        val isUpdatingTask  = remember { mutableStateOf(false) }
+        val isUpdatingTask = remember { mutableStateOf(false) }
 
         Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = {
-            if(!isUpdatingTask.value)
-            {
-                isUpdatingTask.value = true
-                updateTask(item.value)
-            }
-        },
-            enabled = !isUpdatingTask.value)
+        IconButton(
+            onClick = {
+                if (!isUpdatingTask.value) {
+                    isUpdatingTask.value = true
+                    updateTask(item.value)
+                }
+            },
+            enabled = !isUpdatingTask.value
+        )
         {
             Icon(
                 painter = painterResource(id = R.drawable.ic_info),
@@ -314,7 +308,6 @@ fun ListItem(
         }
     }
 }
-
 
 @Composable
 fun CreateNewTaskBottom(createTask: () -> Unit) {
@@ -360,14 +353,18 @@ fun MainActivityPreview() {
                 {
                     MainScreen(
                         createTask = {
-                            navController.navigate("formScreen") },
+                            navController.navigate("formScreen")
+                        },
                         updateTask = { toDoItem ->
                             navController.navigate("formScreen/${toDoItem.id}")
                         }
                     )
                 }
 
-                composable("formScreen/{toDoItemId}", arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })) {
+                composable(
+                    "formScreen/{toDoItemId}",
+                    arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })
+                ) {
                     val toDoItemId = it.arguments?.getInt("toDoItemId") ?: -1
                     FormScreen(
                         navController = navController,

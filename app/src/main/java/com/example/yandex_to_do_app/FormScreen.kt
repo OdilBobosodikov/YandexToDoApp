@@ -18,9 +18,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Divider
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Switch
@@ -47,10 +47,8 @@ import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
-import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
-import java.util.Locale
 
 
 @Composable
@@ -130,11 +128,11 @@ fun FormScreen(navController: NavController,
         Spacer(modifier = Modifier.height(20.dp))
         ImportanceSection(importanceState)
         Spacer(modifier = Modifier.height(20.dp))
-        Divider()
+        HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
-        DateSection(deadlineDateState)
+        DateSection(deadlineDateState, viewModel)
         Spacer(modifier = Modifier.height(20.dp))
-        Divider()
+        HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
         DeleteSection(toDoItemId, navController, viewModel)
     }
@@ -142,14 +140,13 @@ fun FormScreen(navController: NavController,
 
 
 @Composable
-fun DateSection(dateState: MutableState<Date?>) {
+fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
     val isToggleOn = remember { mutableStateOf(false) }
     val initialDateSet = remember { mutableStateOf(false) }
     val selectedDate = remember { mutableStateOf("") }
-    val dateFormat = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
 
     if (dateState.value != null) {
-        selectedDate.value = dateFormat.format(dateState.value)
+        selectedDate.value = viewModel.appDateFormat.format(dateState.value)
         isToggleOn.value = true
         initialDateSet.value = true
     }
@@ -159,7 +156,7 @@ fun DateSection(dateState: MutableState<Date?>) {
         LocalContext.current,
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
             calendar.set(year, month, dayOfMonth)
-            selectedDate.value = dateFormat.format(calendar.time)
+            selectedDate.value = viewModel.appDateFormat.format(calendar.time)
             dateState.value = calendar.time
             isToggleOn.value = true
             initialDateSet.value = true
@@ -216,8 +213,7 @@ fun DeleteSection(itemId: Int, navController: NavController, viewModel: ToDoView
     if (itemId != -1) {
         Row(
             modifier = Modifier.clickable {
-                val item = viewModel.getItemById(itemId)
-                viewModel.deleteToDoItem(item)
+                viewModel.deleteToDoItemById(itemId)
                 navController.popBackStack()
             },
             verticalAlignment = Alignment.CenterVertically

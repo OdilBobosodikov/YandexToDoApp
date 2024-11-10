@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.repository.ToDoRepository
 import com.example.yandex_to_do_app.ui.theme.Importance
+import java.text.SimpleDateFormat
 import java.util.Date
+import java.util.Locale
 
 class ToDoViewModel : ViewModel() {
     private val repository = ToDoRepository()
@@ -35,15 +37,24 @@ class ToDoViewModel : ViewModel() {
         todoItems.value = repository.getAllToDoItems().toList()
     }
 
-    fun getItemById(itemId: Int): ToDoItem {
+    fun getItemById(itemId: Int): ToDoItem? {
         return repository.getItemById(itemId)
     }
 
-    fun deleteToDoItem(item: ToDoItem) {
-        repository.deleteToDoItem(item)
+    fun deleteToDoItemById(id: Int) {
+        repository.deleteToDoItemById(id)
         todoItems.value = repository.getAllToDoItems().toList()
     }
 
     val completedItemCount: Int
         get() = todoItems.value.count { it.isCompleted }
+
+    val appDateFormat :SimpleDateFormat
+        get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
+
+    fun getFormattedDeadline(date: Date?) : String
+    {
+        if(date != null) return appDateFormat.format(date)
+        return ""
+    }
 }
