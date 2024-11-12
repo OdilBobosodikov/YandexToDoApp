@@ -10,14 +10,14 @@ data class TodoListResponse(
     val status: String,
 
     @SerialName("list")
-    val list: List<TodoItem>,
+    val list: List<TodoItemResponse>,
 
     @SerialName("revision")
     val revision: Int
 )
 {
     @Serializable
-    data class TodoItem(
+    data class TodoItemResponse(
         @SerialName("id")
         val id: String,
 
@@ -45,6 +45,5 @@ data class TodoListResponse(
         @SerialName("last_updated_by")
         val lastUpdatedBy: String
     )
-
 }
 

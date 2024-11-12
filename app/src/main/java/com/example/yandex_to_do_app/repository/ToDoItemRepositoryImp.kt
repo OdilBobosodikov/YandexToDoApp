@@ -1,9 +1,52 @@
 package com.example.yandex_to_do_app.repository
 
+import com.example.yandex_to_do_app.interfaces.ToDoApiService
 import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.ui.theme.Importance
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlinx.serialization.json.Json
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import java.util.concurrent.TimeUnit
+import okhttp3.MediaType.Companion.toMediaType
 import java.util.Date
+
+object RetrofitInstance {
+    private const val BASE_URL = "https://beta.mrdekk.ru/todo/"
+    private const val AUTH_TOKEN = "Bearer Eldarion"
+
+    private val json = Json { ignoreUnknownKeys = true }
+
+    private val okHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .addInterceptor(HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        })
+        .addInterceptor { chain ->
+            val request: Request = chain.request().newBuilder()
+                .addHeader("Authorization", AUTH_TOKEN)
+                .build()
+            chain.proceed(request)
+        }
+        .build()
+
+    private val retrofit = Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(okHttpClient)
+        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
+        .build()
+
+    val api: ToDoApiService by lazy {
+        retrofit.create(ToDoApiService::class.java)
+    }
+}
+
 
 class ToDoItemRepositoryImp() : ToDoItemRepository {
     private val items = mutableListOf<ToDoItem>(
@@ -77,6 +120,21 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
             false, Date(), Date()
         )
     )
+
+    private val apiService = RetrofitInstance.api
+
+    suspend fun fetchToDoList(): Result<TodoListResponse> {
+        return try {
+            val response = apiService.getToDoList()
+            if (response.isSuccessful) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
 
     override fun getItemById(userId: Int): ToDoItem? {
         return items.find { it.id == userId }
