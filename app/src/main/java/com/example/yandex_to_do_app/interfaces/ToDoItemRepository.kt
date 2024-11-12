@@ -1,11 +1,16 @@
 package com.example.yandex_to_do_app.interfaces
 
 import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.model.TodoListResponse
+import com.example.yandex_to_do_app.model.TodoOneItemResponse
+import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
+import com.example.yandex_to_do_app.model.UpdateListRequest
 
 interface ToDoItemRepository {
-    fun getItemById(userId: Int): ToDoItem?
-    fun getAllToDoItems(): MutableList<ToDoItem>
-    fun addToDoItem(item: ToDoItem)
-    fun deleteToDoItemById(id: Int)
-    fun updateToDoItem(item: ToDoItem)
+    suspend fun getItemById(userId: String): Result<TodoOneItemResponse>
+    suspend fun getAllToDoItems(): Result<TodoListResponse>
+    suspend fun addToDoItem(todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest) : Result<TodoPostPutDeleteItemRequest>
+    suspend fun deleteToDoItemById(id: String) : Result<TodoPostPutDeleteItemRequest>
+    suspend fun updateToDoItemById(id: String, todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest)  : Result<TodoPostPutDeleteItemRequest>
+    suspend fun updateList(updateListRequest: UpdateListRequest) : Result<TodoListResponse>
 }

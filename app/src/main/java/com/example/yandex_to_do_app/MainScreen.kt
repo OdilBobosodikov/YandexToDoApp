@@ -47,26 +47,22 @@ import androidx.navigation.navArgument
 import com.example.yandex_to_do_app.MainActivity.Route
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.model.TodoListResponse
+import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
+import java.util.Date
 
 
 @Composable
 fun MainScreen(
     createTask: () -> Unit,
-    updateTask: (ToDoItem) -> Unit,
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
     val isVisible = remember { mutableStateOf(false) }
-    val toDoList by viewModel.toDoList.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-
-    LaunchedEffect(Unit) {
-        viewModel.getToDoItems()
-    }
-
 
     val numberOfCompletedTasks = remember { mutableStateOf(viewModel.completedItemCount) }
     Box(
@@ -135,11 +131,14 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 fun ListOfItems(
     isVisibleState: MutableState<Boolean>,
     numberOfCompletedTasks: MutableState<Int>,
-    updateTask: (ToDoItem) -> Unit,
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
 
-    val todoItems = viewModel.todoItems.value
+    val toDoList by viewModel.toDoList.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+
+    viewModel.getToDoItems()
 
     LazyColumn(
         modifier = Modifier
@@ -150,12 +149,12 @@ fun ListOfItems(
     {
 
         itemsIndexed(
-            todoItems,
+            toDoList,
             key = { _, item -> item.id }) { i, item ->
-            if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
+            if (!isVisibleState.value && !item.done || isVisibleState.value) {
                 ListItem(item, numberOfCompletedTasks, updateTask, viewModel)
             }
-            if (i == todoItems.lastIndex || todoItems.isEmpty()) {
+            if (i == toDoList.lastIndex || toDoList.isEmpty()) {
                 Text(
                     text = "Новое",
                     modifier = Modifier
@@ -172,24 +171,23 @@ fun ListOfItems(
 
 @Composable
 fun ListItem(
-    toDoItem: ToDoItem,
+    todoItemResponse: TodoListResponse.TodoItemResponse,
     numberOfCompletedTasks: MutableState<Int>,
-    updateTask: (ToDoItem) -> Unit,
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
-
-    val item = remember { mutableStateOf(toDoItem) }
+    val item = remember { mutableStateOf(todoItemResponse) }
     val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
     val iconColorId = remember { mutableStateOf(R.color.support_separator) }
     val textColorResId = remember { mutableStateOf(R.color.primary) }
     val textDecoration = remember { mutableStateOf(TextDecoration.None) }
     val isLowImportanceSet = remember { mutableStateOf(false) }
-    val isTaskCompleted = remember { mutableStateOf(item.value.isCompleted) }
-    if (item.value.importance == Importance.Low) {
+    val isTaskCompleted = remember { mutableStateOf(item.value.done) }
+    if (item.value.importance == "low") {
         isLowImportanceSet.value = true
     }
 
-    if (item.value.importance == Importance.High && !isTaskCompleted.value) {
+    if (item.value.importance == "important" && !isTaskCompleted.value) {
         iconResId.value = R.drawable.ic_high_importance
         textColorResId.value = R.color.red
         textDecoration.value = TextDecoration.None
@@ -211,8 +209,8 @@ fun ListItem(
         IconButton(onClick =
         {
             isTaskCompleted.value = !isTaskCompleted.value
-            viewModel.updateItemCompletionStatus(item.value, isTaskCompleted.value)
-            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
+            viewModel.updateItemById(item.value.id, TodoPostPutDeleteItemRequest("ok", item.value.copy(done = isTaskCompleted.value)))
+            if (item.value.importance == "important" && !isTaskCompleted.value) {
                 iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
                 iconColorId.value = R.color.red
@@ -243,7 +241,7 @@ fun ListItem(
 
         Row()
         {
-            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
+            if (item.value.importance == "important" && !isTaskCompleted.value) {
                 textColorResId.value = R.color.red
                 Text(
                     text = "!!",
@@ -290,7 +288,7 @@ fun ListItem(
                 }
                 if (item.value.deadline != null) {
                     Text(
-                        text = viewModel.getFormattedDeadline(item.value.deadline),
+                        text = viewModel.getFormattedDeadline(Date(item.value.deadline!!)),
                         style = AppTypography().headlineSmall,
                         color = colorResource(R.color.tertiary)
                     )
@@ -355,33 +353,8 @@ fun CreateNewTaskBottom(createTask: () -> Unit) {
 @Composable
 fun MainActivityPreview() {
     YandexToDoAppTheme {
-        val navController = rememberNavController()
         YandexToDoAppTheme {
-            NavHost(navController, Route.mainScreen)
-            {
-                composable(route = Route.mainScreen)
-                {
-                    MainScreen(
-                        createTask = {
-                            navController.navigate("formScreen")
-                        },
-                        updateTask = { toDoItem ->
-                            navController.navigate("formScreen/${toDoItem.id}")
-                        }
-                    )
-                }
-
-                composable(
-                    "formScreen/{toDoItemId}",
-                    arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })
-                ) {
-                    val toDoItemId = it.arguments?.getInt("toDoItemId") ?: -1
-                    FormScreen(
-                        navController = navController,
-                        toDoItemId = toDoItemId
-                    )
-                }
-            }
+           MainScreen({}, {})
         }
     }
 }

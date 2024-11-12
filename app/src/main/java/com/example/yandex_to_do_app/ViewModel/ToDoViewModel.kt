@@ -1,22 +1,22 @@
 package com.example.yandex_to_do_app.ViewModel
 
-import androidx.compose.runtime.mutableStateOf
+import android.os.Bundle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.model.TodoListResponse
+import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
+import com.example.yandex_to_do_app.model.UpdateListRequest
 import com.example.yandex_to_do_app.repository.ToDoItemRepositoryImp
-import com.example.yandex_to_do_app.ui.theme.Importance
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 
 class ToDoViewModel : ViewModel() {
     private val repository = ToDoItemRepositoryImp()
-    val todoItems = mutableStateOf(repository.getAllToDoItems().toList())
 
     private val _toDoList = MutableStateFlow<List<TodoListResponse.TodoItemResponse>>(emptyList())
     val toDoList = _toDoList.asStateFlow()
@@ -26,7 +26,7 @@ class ToDoViewModel : ViewModel() {
 
     fun getToDoItems() {
         viewModelScope.launch {
-            val result = repository.fetchToDoList()
+            val result = repository.getAllToDoItems()
             result.onSuccess {
                 _toDoList.value = it.list
             }.onFailure {
@@ -35,41 +35,53 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun addToDoItem(text: String, importance: Importance, deadline: Date?) {
-        val newItem = ToDoItem(
-            id = todoItems.value.size,
-            text = text,
-            importance = importance,
-            deadline = deadline,
-            isCompleted = false,
-            createdAt = Date(),
-            modifiedAt = null
-        )
-        repository.addToDoItem(newItem)
-        todoItems.value = repository.getAllToDoItems().toList()
+    fun updateItemById(id: String, todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest)
+    {
+        viewModelScope.launch {
+            val result = repository.updateToDoItemById(id, todoPostPutDeleteItemRequest)
+            result.onSuccess {
+                val items = repository.getAllToDoItems()
+                items.onSuccess {
+                    _toDoList.value = it.list
+                }
+            }.onFailure {
+                _errorMessage.value = it.message
+            }
+        }
     }
 
-    fun updateToDoItem(item: ToDoItem) {
-        repository.updateToDoItem(item)
-        todoItems.value = repository.getAllToDoItems().toList()
+    fun getItemById(toDoItemId: String,
+                    onResult: (TodoListResponse.TodoItemResponse?) -> Unit) {
+        viewModelScope.launch {
+            repository.getItemById(toDoItemId).onSuccess {
+                onResult(it.element)
+            }.onFailure {
+                _errorMessage.value = it.message
+                onResult(null)
+            }
+        }
     }
 
-    fun updateItemCompletionStatus(item: ToDoItem, completionStatus: Boolean) {
-        repository.updateItemCompletionStatus(item, completionStatus)
-        todoItems.value = repository.getAllToDoItems().toList()
+    fun deleteToDoItemById(itemId: String) {
+        viewModelScope.launch {
+            val result = repository.deleteToDoItemById(itemId)
+            result.onSuccess {
+                val items = repository.getAllToDoItems()
+                items.onSuccess {
+                    _toDoList.value = it.list
+                }
+            }.onFailure {
+                _errorMessage.value = it.message
+            }
+        }
     }
 
-    fun getItemById(itemId: Int): ToDoItem? {
-        return repository.getItemById(itemId)
-    }
 
-    fun deleteToDoItemById(id: Int) {
-        repository.deleteToDoItemById(id)
-        todoItems.value = repository.getAllToDoItems().toList()
-    }
+
+
 
     val completedItemCount: Int
-        get() = todoItems.value.count { it.isCompleted }
+        get() = _toDoList.value.count { it.done }
 
     val appDateFormat :SimpleDateFormat
         get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
@@ -79,4 +91,23 @@ class ToDoViewModel : ViewModel() {
         if(date != null) return appDateFormat.format(date)
         return ""
     }
+
+
+    fun postToDoItem(text: String, importance: String, deadline: Date?) {
+        viewModelScope.launch {
+            val result = repository.addToDoItem(TodoPostPutDeleteItemRequest("ok",
+                TodoListResponse.TodoItemResponse(UUID.randomUUID().toString(), text = text,
+                    importance = importance, deadline = deadline?.time, done = false, createdAt = Date().time,
+                    changedAt = Date().time, lastUpdatedBy = "qwe")))
+            result.onSuccess {
+                val items = repository.getAllToDoItems()
+                items.onSuccess {
+                    _toDoList.value = it.list
+                }
+            }.onFailure {
+                _errorMessage.value = it.message
+            }
+        }
+    }
+
 }

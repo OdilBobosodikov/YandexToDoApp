@@ -44,6 +44,8 @@ import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.model.TodoListResponse
+import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
@@ -53,26 +55,30 @@ import java.util.Date
 
 @Composable
 fun FormScreen(navController: NavController,
-               toDoItemId: Int = -1,
+               toDoItemId: String = "",
                viewModel: ToDoViewModel = ToDoViewModel()) {
 
     val textState = remember { mutableStateOf("") }
-    val importanceState = remember { mutableStateOf(Importance.None) }
+    val importanceState = remember { mutableStateOf("basic") }
     val completionState = remember { mutableStateOf(false) }
     val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
     var toDoItemId = toDoItemId
 
-    if (toDoItemId != -1) {
-        val item: ToDoItem? = viewModel.getItemById(toDoItemId)
+    var item: TodoListResponse.TodoItemResponse? = null
+
+    viewModel.getItemById(toDoItemId) {
+        item = it
         if(item != null)
         {
-            textState.value = item.text
-            importanceState.value = item.importance
-            deadlineDateState.value = item.deadline
-            toDoItemId = item.id
-            completionState.value = item.isCompleted
+            textState.value = item!!.text
+            importanceState.value = item!!.importance
+            deadlineDateState.value = item!!.deadline?.let { Date(it) }
+            toDoItemId = item!!.id
+            completionState.value = item!!.done
         }
     }
+
+
 
     Column(
         modifier = Modifier
@@ -95,24 +101,28 @@ fun FormScreen(navController: NavController,
                 color = colorResource(R.color.blue),
                 modifier = Modifier.align(Alignment.CenterVertically)
                     .clickable {
-                        if(toDoItemId != -1)
+                        if(toDoItemId != "")
                         {
-                            viewModel.updateToDoItem(
-                                ToDoItem(
-                                    id = toDoItemId,
-                                    text = textState.value,
-                                    importance = importanceState.value,
-                                    deadline = deadlineDateState.value,
-                                    isCompleted = completionState.value,
-                                    createdAt = Date(),
-                                    modifiedAt = Date()
-                                )
+                            viewModel.updateItemById(
+                                toDoItemId,
+                                    TodoPostPutDeleteItemRequest(status = "ok",
+                                        element = TodoListResponse.TodoItemResponse(
+                                            id = toDoItemId,
+                                            text = textState.value,
+                                            importance = importanceState.value,
+                                            deadline = deadlineDateState.value?.time,
+                                            done = completionState.value,
+                                            createdAt = item!!.createdAt,
+                                            changedAt = Date().time,
+                                            lastUpdatedBy = "qwe"
+                                        )
+                                    )
                             )
                             navController.popBackStack()
                         }
                         else
                         {
-                            viewModel.addToDoItem(
+                            viewModel.postToDoItem(
                                 text = textState.value,
                                 importance = importanceState.value,
                                 deadline = deadlineDateState.value,
@@ -137,7 +147,6 @@ fun FormScreen(navController: NavController,
         DeleteSection(toDoItemId, navController, viewModel)
     }
 }
-
 
 @Composable
 fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
@@ -207,10 +216,9 @@ fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
     }
 }
 
-
 @Composable
-fun DeleteSection(itemId: Int, navController: NavController, viewModel: ToDoViewModel) {
-    if (itemId != -1) {
+fun DeleteSection(itemId: String, navController: NavController, viewModel: ToDoViewModel) {
+    if (itemId != "") {
         Row(
             modifier = Modifier.clickable {
                 viewModel.deleteToDoItemById(itemId)
@@ -270,7 +278,7 @@ fun TextSection(taskState: MutableState<String>) {
 }
 
 @Composable
-fun ImportanceSection(importanceState: MutableState<Importance>) {
+fun ImportanceSection(importanceState: MutableState<String>) {
     val textOfImportanceStatus = remember { mutableStateOf("Нет") }
     val colorOfImportanceStatus = remember { mutableStateOf(R.color.tertiary) }
     val expanded = remember { mutableStateOf(false) }
@@ -295,7 +303,7 @@ fun ImportanceSection(importanceState: MutableState<Importance>) {
             modifier = Modifier.background(color = Color.White)
         ) {
             DropdownMenuItem(onClick = {
-                importanceState.value = Importance.None
+                importanceState.value = "basic"
                 UpdateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
@@ -309,7 +317,7 @@ fun ImportanceSection(importanceState: MutableState<Importance>) {
                 )
             })
             DropdownMenuItem(onClick = {
-                importanceState.value = Importance.Low
+                importanceState.value = "low"
                 UpdateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
@@ -323,7 +331,7 @@ fun ImportanceSection(importanceState: MutableState<Importance>) {
                 )
             })
             DropdownMenuItem(onClick = {
-                importanceState.value = Importance.High
+                importanceState.value = "important"
                 UpdateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
@@ -341,14 +349,14 @@ fun ImportanceSection(importanceState: MutableState<Importance>) {
 }
 
 fun UpdateImportanceValues(
-    importanceState: MutableState<Importance>,
+    importanceState: MutableState<String>,
     textOfImportanceStatus: MutableState<String>,
     colorOfImportanceStatus: MutableState<Int>
 ) {
-    if (importanceState.value == Importance.High) {
+    if (importanceState.value == "important") {
         textOfImportanceStatus.value = "!! Высокий"
         colorOfImportanceStatus.value = R.color.red
-    } else if (importanceState.value == Importance.None) {
+    } else if (importanceState.value == "basic") {
         textOfImportanceStatus.value = "Нет"
         colorOfImportanceStatus.value = R.color.tertiary
     } else {

@@ -33,8 +33,8 @@ class MainActivity : ComponentActivity() {
                             createTask = {
                                 navController.navigate(Route.formScreen)
                             },
-                            updateTask = { toDoItem ->
-                                navController.navigate("formScreen/${toDoItem.id}")
+                            updateTask = {
+                                navController.navigate("formScreen/${it.id}")
                             },
                             viewModel
                         )
@@ -42,9 +42,9 @@ class MainActivity : ComponentActivity() {
 
                     composable(
                         "${Route.formScreen}/{toDoItemId}",
-                        arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })
+                        arguments = listOf(navArgument("toDoItemId") { defaultValue = "" })
                     ) {
-                        val toDoItemId = it.arguments?.getInt("toDoItemId") ?: -1
+                        val toDoItemId = it.arguments?.getString("toDoItemId") ?: ""
                         FormScreen(
                             navController = navController,
                             toDoItemId = toDoItemId,
