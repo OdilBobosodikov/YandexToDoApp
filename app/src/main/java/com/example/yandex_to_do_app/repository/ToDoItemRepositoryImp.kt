@@ -1,5 +1,6 @@
 package com.example.yandex_to_do_app.repository
 
+import android.view.WindowManager.BadTokenException
 import com.example.yandex_to_do_app.interfaces.ToDoApiService
 import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.ToDoItem
@@ -22,9 +23,6 @@ object RetrofitInstance {
     private val json = Json { ignoreUnknownKeys = true }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         })
@@ -126,10 +124,10 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
     suspend fun fetchToDoList(): Result<TodoListResponse> {
         return try {
             val response = apiService.getToDoList()
-            if (response.isSuccessful) {
-                Result.success(response.body()!!)
+            if (response.status == "ok") {
+                Result.success(response)
             } else {
-                Result.failure(Exception("Error: ${response.code()}"))
+                throw BadTokenException()
             }
         } catch (e: Exception) {
             Result.failure(e)
