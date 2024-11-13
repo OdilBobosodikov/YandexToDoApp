@@ -25,6 +25,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -44,6 +45,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.ui.theme.AppTypography
@@ -69,15 +73,31 @@ fun MainScreen(
                 snackbarHostState.showSnackbar(
                     message = it,
                     actionLabel = "OK",
-                    duration = SnackbarDuration.Short)
+                    duration = SnackbarDuration.Short
+                )
                 viewModel.clearError()
             }
         }
     }
 
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.updateList()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
-    ) {it
+    ) {
+        it
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -92,7 +112,6 @@ fun MainScreen(
             CreateNewTaskBottom(viewModel, createTask)
         }
     }
-
 
 
 }
@@ -288,9 +307,7 @@ fun ListItem(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.width(270.dp)
                     )
-                }
-                else
-                {
+                } else {
                     Text(
                         text = item.value.text,
                         style = AppTypography().bodyMedium,
@@ -333,8 +350,10 @@ fun ListItem(
 }
 
 @Composable
-fun CreateNewTaskBottom(viewModel: ToDoViewModel,
-                        createTask: () -> Unit) {
+fun CreateNewTaskBottom(
+    viewModel: ToDoViewModel,
+    createTask: () -> Unit
+) {
     val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -371,7 +390,7 @@ fun CreateNewTaskBottom(viewModel: ToDoViewModel,
 fun MainActivityPreview() {
     YandexToDoAppTheme {
         YandexToDoAppTheme {
-           MainScreen({}, {})
+            MainScreen({}, {})
         }
     }
 }

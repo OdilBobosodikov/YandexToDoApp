@@ -181,8 +181,10 @@ class ToDoViewModel : ViewModel() {
     }
 
     fun updateUIElement(todoItem: TodoListResponse.TodoItemResponse) {
-        var index = _toDoList.value.indexOfFirst { it.id == todoItem.id }
-        _toDoList.value[index] = todoItem.copy(changedAt = Date().time)
+
+        _toDoList.value = _toDoList.value.map {
+            if (it.id == todoItem.id) todoItem.copy(changedAt = Date().time) else it
+        }.toMutableList()
     }
 
     fun updateList() {
