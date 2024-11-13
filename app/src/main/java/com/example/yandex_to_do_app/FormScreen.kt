@@ -28,6 +28,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -62,21 +64,17 @@ fun FormScreen(
     val importanceState = remember { mutableStateOf("basic") }
     val completionState = remember { mutableStateOf(false) }
     val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
+    val createdAt: MutableState<Long> = remember { mutableLongStateOf(Date().time) }
     var toDoItemId = toDoItemId
 
-    var item: TodoListResponse.TodoItemResponse? = null
     if (toDoItemId != "") {
-
-
         viewModel.getItemById(toDoItemId) {
-            item = it
-        }
-        if (item != null) {
-            textState.value = item?.text ?: ""
-            importanceState.value = item?.importance ?: "basic"
-            deadlineDateState.value = item?.deadline?.let { Date(it) }
-            toDoItemId = item?.id ?: ""
-            completionState.value = item?.done ?: false
+            textState.value = it?.text ?: ""
+            importanceState.value = it?.importance ?: "basic"
+            deadlineDateState.value = it?.deadline?.let { Date(it) }
+            createdAt.value = it?.createdAt ?: Date().time
+            toDoItemId = it?.id ?: ""
+            completionState.value = it?.done ?: false
         }
     }
 
@@ -115,7 +113,7 @@ fun FormScreen(
                                         importance = importanceState.value,
                                         deadline = deadlineDateState.value?.time,
                                         done = completionState.value,
-                                        createdAt = item?.createdAt ?: Date().time,
+                                        createdAt = createdAt.value,
                                         changedAt = Date().time,
                                         lastUpdatedBy = "qwe"
                                     )
@@ -281,7 +279,7 @@ fun TextSection(taskState: MutableState<String>) {
 @Composable
 fun ImportanceSection(importanceState: MutableState<String>) {
     val textOfImportanceStatus = remember { mutableStateOf("Нет") }
-    val colorOfImportanceStatus = remember { mutableStateOf(R.color.tertiary) }
+    val colorOfImportanceStatus = remember { mutableIntStateOf(R.color.tertiary) }
     val expanded = remember { mutableStateOf(false) }
 
     Column {
@@ -290,11 +288,11 @@ fun ImportanceSection(importanceState: MutableState<String>) {
             style = AppTypography().bodyMedium,
         )
 
-        UpdateImportanceValues(importanceState, textOfImportanceStatus, colorOfImportanceStatus)
+        updateImportanceValues(importanceState, textOfImportanceStatus, colorOfImportanceStatus)
 
         Text(
             text = textOfImportanceStatus.value,
-            color = colorResource(colorOfImportanceStatus.value),
+            color = colorResource(colorOfImportanceStatus.intValue),
             modifier = Modifier.clickable { expanded.value = true }
         )
 
@@ -305,7 +303,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
         ) {
             DropdownMenuItem(onClick = {
                 importanceState.value = "basic"
-                UpdateImportanceValues(
+                updateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
                     colorOfImportanceStatus
@@ -319,7 +317,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
             })
             DropdownMenuItem(onClick = {
                 importanceState.value = "low"
-                UpdateImportanceValues(
+                updateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
                     colorOfImportanceStatus
@@ -333,7 +331,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
             })
             DropdownMenuItem(onClick = {
                 importanceState.value = "important"
-                UpdateImportanceValues(
+                updateImportanceValues(
                     importanceState,
                     textOfImportanceStatus,
                     colorOfImportanceStatus
@@ -349,7 +347,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
     }
 }
 
-fun UpdateImportanceValues(
+fun updateImportanceValues(
     importanceState: MutableState<String>,
     textOfImportanceStatus: MutableState<String>,
     colorOfImportanceStatus: MutableState<Int>
