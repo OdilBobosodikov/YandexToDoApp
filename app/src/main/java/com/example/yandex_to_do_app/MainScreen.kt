@@ -26,7 +26,6 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,7 +46,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.TodoListResponse
-import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
@@ -91,9 +89,11 @@ fun MainScreen(
                 Header(viewModel)
                 ListOfItems(updateTask, viewModel)
             }
-            CreateNewTaskBottom(createTask)
+            CreateNewTaskBottom(viewModel, createTask)
         }
     }
+
+
 
 }
 
@@ -223,7 +223,7 @@ fun ListItem(
         IconButton(onClick =
         {
             isTaskCompleted.value = !isTaskCompleted.value
-            viewModel.updateItemById(item.value.id, TodoPostPutDeleteItemRequest("ok", item.value.copy(done = isTaskCompleted.value)))
+            viewModel.updateUIElement(item.value.copy(done = isTaskCompleted.value))
             if (item.value.importance == "important" && !isTaskCompleted.value) {
                 iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
@@ -316,6 +316,7 @@ fun ListItem(
             onClick = {
                 if (!isUpdatingTask.value) {
                     isUpdatingTask.value = true
+                    viewModel.updateList()
                     updateTask(item.value)
                 }
             },
@@ -332,7 +333,8 @@ fun ListItem(
 }
 
 @Composable
-fun CreateNewTaskBottom(createTask: () -> Unit) {
+fun CreateNewTaskBottom(viewModel: ToDoViewModel,
+                        createTask: () -> Unit) {
     val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -341,6 +343,7 @@ fun CreateNewTaskBottom(createTask: () -> Unit) {
             onClick = {
                 if (!isCreatingTask.value) {
                     isCreatingTask.value = true
+                    viewModel.updateList()
                     createTask()
                 }
             },
