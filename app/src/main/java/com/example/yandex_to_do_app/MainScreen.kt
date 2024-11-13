@@ -19,13 +19,19 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -45,6 +51,7 @@ import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
+import kotlinx.coroutines.launch
 import java.util.Date
 
 
@@ -54,20 +61,40 @@ fun MainScreen(
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.back_primary))
-    )
-    {
-        Column(modifier = Modifier.fillMaxSize())
-        {
-            Header(viewModel)
-            ListOfItems(updateTask, viewModel)
+    val errorMessage = viewModel.errorMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(errorMessage) {
+        errorMessage.value?.let {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = it,
+                    actionLabel = "OK",
+                    duration = SnackbarDuration.Short)
+                viewModel.clearError()
+            }
         }
-        CreateNewTaskBottom(createTask)
     }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) {it
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorResource(id = R.color.back_primary))
+        )
+        {
+            Column(modifier = Modifier.fillMaxSize())
+            {
+                Header(viewModel)
+                ListOfItems(updateTask, viewModel)
+            }
+            CreateNewTaskBottom(createTask)
+        }
+    }
+
 }
 
 @Composable

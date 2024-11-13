@@ -52,9 +52,11 @@ import java.util.Date
 
 
 @Composable
-fun FormScreen(navController: NavController,
-               toDoItemId: String = "",
-               viewModel: ToDoViewModel = ToDoViewModel()) {
+fun FormScreen(
+    navController: NavController,
+    toDoItemId: String = "",
+    viewModel: ToDoViewModel = ToDoViewModel()
+) {
 
     val textState = remember { mutableStateOf("") }
     val importanceState = remember { mutableStateOf("basic") }
@@ -63,11 +65,13 @@ fun FormScreen(navController: NavController,
     var toDoItemId = toDoItemId
 
     var item: TodoListResponse.TodoItemResponse? = null
+    if (toDoItemId != "") {
 
-    viewModel.getItemById(toDoItemId) {
-        item = it
-        if(item != null)
-        {
+
+        viewModel.getItemById(toDoItemId) {
+            item = it
+        }
+        if (item != null) {
             textState.value = item?.text ?: ""
             importanceState.value = item?.importance ?: "basic"
             deadlineDateState.value = item?.deadline?.let { Date(it) }
@@ -97,29 +101,28 @@ fun FormScreen(navController: NavController,
             Text(
                 "CОХРАНИТЬ",
                 color = colorResource(R.color.blue),
-                modifier = Modifier.align(Alignment.CenterVertically)
+                modifier = Modifier
+                    .align(Alignment.CenterVertically)
                     .clickable {
-                        if(toDoItemId != "")
-                        {
+                        if (toDoItemId != "") {
                             viewModel.updateItemById(
                                 toDoItemId,
-                                    TodoPostPutDeleteItemRequest(status = "ok",
-                                        element = TodoListResponse.TodoItemResponse(
-                                            id = toDoItemId,
-                                            text = textState.value,
-                                            importance = importanceState.value,
-                                            deadline = deadlineDateState.value?.time,
-                                            done = completionState.value,
-                                            createdAt = item!!.createdAt,
-                                            changedAt = Date().time,
-                                            lastUpdatedBy = "qwe"
-                                        )
+                                TodoPostPutDeleteItemRequest(
+                                    status = "ok",
+                                    element = TodoListResponse.TodoItemResponse(
+                                        id = toDoItemId,
+                                        text = textState.value,
+                                        importance = importanceState.value,
+                                        deadline = deadlineDateState.value?.time,
+                                        done = completionState.value,
+                                        createdAt = item?.createdAt ?: Date().time,
+                                        changedAt = Date().time,
+                                        lastUpdatedBy = "qwe"
                                     )
+                                )
                             )
                             navController.popBackStack()
-                        }
-                        else
-                        {
+                        } else {
                             viewModel.postToDoItem(
                                 text = textState.value,
                                 importance = importanceState.value,

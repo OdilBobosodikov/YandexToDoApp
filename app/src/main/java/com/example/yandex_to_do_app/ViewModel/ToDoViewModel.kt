@@ -12,6 +12,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerializationException
+import retrofit2.HttpException
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -31,24 +33,24 @@ class ToDoViewModel : ViewModel() {
     private val _numberOfCheckedItems = MutableStateFlow<Int>(0)
     val numberOfCheckedItems = _numberOfCheckedItems.asStateFlow()
 
-    fun updateCounterOfCheckedItems(increase:Boolean = true)
-    {
-        if(increase)
-        {
+    private val _errorMessage = MutableStateFlow<String?>(null)
+    val errorMessage = _errorMessage.asStateFlow()
+
+    fun updateCounterOfCheckedItems(increase: Boolean = true) {
+        if (increase) {
             _numberOfCheckedItems.value += 1
-        }
-        else
-        {
+        } else {
             _numberOfCheckedItems.value -= 1
         }
     }
-    fun updateVisibleState()
-    {
+
+    fun updateVisibleState() {
         _isVisible.value = !_isVisible.value
     }
 
-    private val _errorMessage = MutableStateFlow<String?>(null)
-    val errorMessage = _errorMessage.asStateFlow()
+    fun clearError() {
+        _errorMessage.value = null
+    }
 
     init {
         getToDoItems()
@@ -62,32 +64,55 @@ class ToDoViewModel : ViewModel() {
                 _revision.value = it.revision
                 _numberOfCheckedItems.value = it.list.count { it.done }
             }.onFailure {
-                _errorMessage.value = it.message
-            }
+                    _errorMessage.value = it.message
+                }
         }
     }
 
-    fun updateItemById(id: String, todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest)
-    {
+    fun updateItemById(id: String, todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest) {
         viewModelScope.launch {
-            val result = repository.updateToDoItemById(id, todoPostPutDeleteItemRequest, _revision.value)
+            val result =
+                repository.updateToDoItemById(id, todoPostPutDeleteItemRequest, _revision.value)
             result.onSuccess {
-               getToDoItems()
+                getToDoItems()
             }.onFailure {
-                _errorMessage.value = it.message
-            }
+                    if (it is HttpException && it.code() == 400) {
+                        _errorMessage.value = "Error: Wrong revision"
+                    } else if (it is HttpException && it.code() == 404) {
+                        _errorMessage.value = "Error: No such value"
+                    } else {
+                        _errorMessage.value = "Error: ${it.message}"
+                    }
+                }
         }
     }
 
-    fun getItemById(toDoItemId: String,
-                    onResult: (TodoListResponse.TodoItemResponse?) -> Unit) {
+    fun getItemById(
+        toDoItemId: String,
+        onResult: (TodoListResponse.TodoItemResponse?) -> Unit
+    ) {
         viewModelScope.launch {
-            repository.getItemById(toDoItemId).onSuccess {
-                onResult(it.element)
-            }.onFailure {
-                _errorMessage.value = it.message
-                onResult(null)
-            }
+            repository.getItemById(toDoItemId)
+                .onSuccess {
+                    onResult(it.element)
+                }.onFailure {
+                    when (it) {
+                        is HttpException -> {
+                            _errorMessage.value = "Error: Could not get Task by Id"
+                            onResult(null)
+                        }
+
+                        is SerializationException -> {
+                            _errorMessage.value = "Error: Wring data format"
+                            onResult(null)
+                        }
+
+                        else -> {
+                            _errorMessage.value = "Error: ${it.message}"
+                            onResult(null)
+                        }
+                    }
+                }
         }
     }
 
@@ -97,31 +122,55 @@ class ToDoViewModel : ViewModel() {
             result.onSuccess {
                 getToDoItems()
             }.onFailure {
-                _errorMessage.value = it.message
-            }
+                    if (it is HttpException && it.code() == 400) {
+                        _errorMessage.value = "Error: Wrong revision"
+                    } else if (it is HttpException && it.code() == 404) {
+                        _errorMessage.value = "Error: No such value"
+                    } else {
+                        _errorMessage.value = "Error: ${it.message}"
+                    }
+                }
         }
     }
 
     fun postToDoItem(text: String, importance: String, deadline: Date?) {
         viewModelScope.launch {
-            val result = repository.addToDoItem(TodoPostPutDeleteItemRequest("ok",
-                TodoListResponse.TodoItemResponse(UUID.randomUUID().toString(), text = text,
-                    importance = importance, deadline = deadline?.time, done = false, createdAt = Date().time,
-                    changedAt = Date().time, lastUpdatedBy = "qwe")), _revision.value)
+            val result = repository.addToDoItem(
+                TodoPostPutDeleteItemRequest(
+                    "ok",
+                    TodoListResponse.TodoItemResponse(
+                        UUID.randomUUID().toString(),
+                        text = text,
+                        importance = importance,
+                        deadline = deadline?.time,
+                        done = false,
+                        createdAt = Date().time,
+                        changedAt = Date().time,
+                        lastUpdatedBy = "qwe"
+                    )
+                ), _revision.value
+            )
             result.onSuccess {
                 getToDoItems()
             }.onFailure {
-                _errorMessage.value = it.message
-            }
+                    when (it) {
+                        is HttpException -> {
+                            _errorMessage.value = "Error: Wrong revision"
+                        }
+
+                        else -> {
+                            _errorMessage.value = "Error: ${it.message}"
+                        }
+                    }
+                }
         }
     }
 
-    val appDateFormat :SimpleDateFormat
+    val appDateFormat: SimpleDateFormat
         get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
 
-    fun getFormattedDeadline(date: Date?) : String
-    {
-        if(date != null) return appDateFormat.format(date)
+    fun getFormattedDeadline(date: Date?): String {
+        if (date != null) return appDateFormat.format(date)
         return ""
     }
 
