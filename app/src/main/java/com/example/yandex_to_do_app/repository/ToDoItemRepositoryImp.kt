@@ -68,9 +68,10 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
         }
     }
 
-    override suspend fun addToDoItem(todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest): Result<TodoPostPutDeleteItemRequest> {
+    override suspend fun addToDoItem(todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest,
+                                     revision: Int): Result<TodoPostPutDeleteItemRequest> {
         return try {
-            val response = apiService.postItem(todoPostPutDeleteItemRequest)
+            val response = apiService.postItem(todoPostPutDeleteItemRequest, revision)
             if (response.status == "ok") {
                 Result.success(response)
             } else {
@@ -81,9 +82,9 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
         }
     }
 
-    override suspend fun deleteToDoItemById(id: String): Result<TodoPostPutDeleteItemRequest> {
+    override suspend fun deleteToDoItemById(id: String, revision: Int): Result<TodoPostPutDeleteItemRequest> {
         return try {
-            val response = apiService.deleteItemById(id)
+            val response = apiService.deleteItemById(id, revision)
             if (response.status == "ok") {
                 Result.success(response)
             } else {
@@ -96,10 +97,10 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
 
     override suspend fun updateToDoItemById(
         id: String,
-        todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest
-    ): Result<TodoPostPutDeleteItemRequest> {
+        todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest,
+        revision: Int): Result<TodoPostPutDeleteItemRequest> {
         return try {
-            val response = apiService.updateItemById(id, todoPostPutDeleteItemRequest)
+            val response = apiService.updateItemById(id, todoPostPutDeleteItemRequest, revision)
             if (response.status == "ok") {
                 Result.success(response)
             } else {
@@ -110,9 +111,9 @@ class ToDoItemRepositoryImp() : ToDoItemRepository {
         }
     }
 
-    override suspend fun updateList(updateListRequest: UpdateListRequest): Result<TodoListResponse> {
+    override suspend fun updateList(updateListRequest: UpdateListRequest, revision: Int): Result<TodoListResponse> {
         return try {
-            val response = apiService.updateList(updateListRequest)
+            val response = apiService.updateList(updateListRequest, revision)
             if (response.status == "ok") {
                 Result.success(response)
             } else {

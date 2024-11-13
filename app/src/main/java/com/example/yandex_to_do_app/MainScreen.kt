@@ -21,7 +21,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -40,17 +39,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.yandex_to_do_app.MainActivity.Route
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
-import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 import java.util.Date
@@ -62,9 +54,7 @@ fun MainScreen(
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
-    val isVisible = remember { mutableStateOf(false) }
-
-    val numberOfCompletedTasks = remember { mutableStateOf(viewModel.completedItemCount) }
+    val errorMessage by viewModel.errorMessage.collectAsState()
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -73,15 +63,15 @@ fun MainScreen(
     {
         Column(modifier = Modifier.fillMaxSize())
         {
-            Header(isVisible, numberOfCompletedTasks)
-            ListOfItems(isVisible, numberOfCompletedTasks, updateTask, viewModel)
+            Header(viewModel)
+            ListOfItems(updateTask, viewModel)
         }
         CreateNewTaskBottom(createTask)
     }
 }
 
 @Composable
-fun Header(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
+fun Header(viewModel: ToDoViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -91,12 +81,14 @@ fun Header(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutabl
             text = "Мои дела",
             style = AppTypography().titleLarge
         )
-        ToolBar(isVisibleState, numberOfCompletedTasks)
+        ToolBar(viewModel)
     }
 }
 
 @Composable
-fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
+fun ToolBar(viewModel: ToDoViewModel) {
+    val isVisible = viewModel.isVisible.collectAsState()
+    val numberOfCompletedTasks = viewModel.numberOfCheckedItems.collectAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,9 +100,9 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
             modifier = Modifier.align(Alignment.CenterVertically)
         )
         Spacer(modifier = Modifier.weight(1f))
-        IconButton({ isVisibleState.value = !isVisibleState.value })
+        IconButton({ viewModel.updateVisibleState() })
         {
-            if (isVisibleState.value) {
+            if (isVisible.value) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_eye_off),
                     contentDescription = "Don't display completed tasks",
@@ -129,16 +121,12 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 
 @Composable
 fun ListOfItems(
-    isVisibleState: MutableState<Boolean>,
-    numberOfCompletedTasks: MutableState<Int>,
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
 
     val toDoList by viewModel.toDoList.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-
-    viewModel.getToDoItems()
+    val isVisible = viewModel.isVisible.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -151,8 +139,8 @@ fun ListOfItems(
         itemsIndexed(
             toDoList,
             key = { _, item -> item.id }) { i, item ->
-            if (!isVisibleState.value && !item.done || isVisibleState.value) {
-                ListItem(item, numberOfCompletedTasks, updateTask, viewModel)
+            if (!isVisible.value && !item.done || isVisible.value) {
+                ListItem(item, updateTask, viewModel)
             }
             if (i == toDoList.lastIndex || toDoList.isEmpty()) {
                 Text(
@@ -172,7 +160,6 @@ fun ListOfItems(
 @Composable
 fun ListItem(
     todoItemResponse: TodoListResponse.TodoItemResponse,
-    numberOfCompletedTasks: MutableState<Int>,
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
@@ -215,20 +202,20 @@ fun ListItem(
                 textColorResId.value = R.color.red
                 iconColorId.value = R.color.red
                 textDecoration.value = TextDecoration.None
-                numberOfCompletedTasks.value -= 1
+                viewModel.updateCounterOfCheckedItems(increase = false)
             } else if (isTaskCompleted.value) {
                 isLowImportanceSet.value = false
                 iconResId.value = R.drawable.ic_checked
                 textColorResId.value = R.color.tertiary
                 iconColorId.value = R.color.green
                 textDecoration.value = TextDecoration.LineThrough
-                numberOfCompletedTasks.value += 1
+                viewModel.updateCounterOfCheckedItems(increase = true)
             } else {
                 iconResId.value = R.drawable.ic_unchecked
                 textColorResId.value = R.color.primary
                 iconColorId.value = R.color.support_separator
                 textDecoration.value = TextDecoration.None
-                numberOfCompletedTasks.value -= 1
+                viewModel.updateCounterOfCheckedItems(increase = false)
             }
         })
         {

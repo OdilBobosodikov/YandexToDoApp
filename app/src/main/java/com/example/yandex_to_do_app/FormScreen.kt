@@ -43,11 +43,9 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
-import com.example.yandex_to_do_app.model.ToDoItem
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import java.util.Calendar
 import java.util.Date
@@ -70,11 +68,11 @@ fun FormScreen(navController: NavController,
         item = it
         if(item != null)
         {
-            textState.value = item!!.text
-            importanceState.value = item!!.importance
-            deadlineDateState.value = item!!.deadline?.let { Date(it) }
-            toDoItemId = item!!.id
-            completionState.value = item!!.done
+            textState.value = item?.text ?: ""
+            importanceState.value = item?.importance ?: "basic"
+            deadlineDateState.value = item?.deadline?.let { Date(it) }
+            toDoItemId = item?.id ?: ""
+            completionState.value = item?.done ?: false
         }
     }
 
