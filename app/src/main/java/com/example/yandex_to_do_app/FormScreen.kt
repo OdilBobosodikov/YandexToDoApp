@@ -32,6 +32,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +50,7 @@ import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
+import kotlinx.coroutines.launch
 import java.util.Calendar
 import java.util.Date
 
@@ -65,6 +67,7 @@ fun FormScreen(
     val completionState = remember { mutableStateOf(false) }
     val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
     val createdAt: MutableState<Long> = remember { mutableLongStateOf(Date().time) }
+    val coroutineScope = rememberCoroutineScope()
     var toDoItemId = toDoItemId
 
     if (toDoItemId != "") {
@@ -102,30 +105,32 @@ fun FormScreen(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .clickable {
-                        if (toDoItemId != "") {
-                            viewModel.updateItemById(
-                                toDoItemId,
-                                TodoPostPutDeleteItemRequest(
-                                    status = "ok",
-                                    element = TodoListResponse.TodoItemResponse(
-                                        id = toDoItemId,
-                                        text = textState.value,
-                                        importance = importanceState.value,
-                                        deadline = deadlineDateState.value?.time,
-                                        done = completionState.value,
-                                        createdAt = createdAt.value,
-                                        changedAt = Date().time,
-                                        lastUpdatedBy = "qwe"
+                        coroutineScope.launch {
+                            if (toDoItemId != "") {
+                                viewModel.updateItemById(
+                                    toDoItemId,
+                                    TodoPostPutDeleteItemRequest(
+                                        status = "ok",
+                                        element = TodoListResponse.TodoItemResponse(
+                                            id = toDoItemId,
+                                            text = textState.value,
+                                            importance = importanceState.value,
+                                            deadline = deadlineDateState.value?.time,
+                                            done = completionState.value,
+                                            createdAt = createdAt.value,
+                                            changedAt = Date().time,
+                                            lastUpdatedBy = "qwe"
+                                        )
                                     )
+                                ).join()
+                                viewModel.getToDoItems().join()
+                            }else {
+                                viewModel.postToDoItem(
+                                    text = textState.value,
+                                    importance = importanceState.value,
+                                    deadline = deadlineDateState.value,
                                 )
-                            )
-                            navController.popBackStack()
-                        } else {
-                            viewModel.postToDoItem(
-                                text = textState.value,
-                                importance = importanceState.value,
-                                deadline = deadlineDateState.value,
-                            )
+                            }
                             navController.popBackStack()
                         }
                     }

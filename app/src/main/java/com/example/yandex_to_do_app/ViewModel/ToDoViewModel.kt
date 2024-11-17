@@ -6,6 +6,7 @@ import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.model.UpdateListRequest
 import com.example.yandex_to_do_app.repository.ToDoItemRepositoryImp
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -23,6 +24,7 @@ class ToDoViewModel : ViewModel() {
     init {
         getToDoItems()
     }
+
     private val _toDoList = MutableStateFlow<MutableList<TodoListResponse.TodoItemResponse>>(
         mutableListOf()
     )
@@ -55,8 +57,8 @@ class ToDoViewModel : ViewModel() {
         _errorMessage.value = null
     }
 
-    fun getToDoItems() {
-        viewModelScope.launch {
+    fun getToDoItems(): Job {
+        return viewModelScope.launch {
             val result = repository.getAllToDoItems()
             result.onSuccess {
                 _toDoList.value = it.list.toMutableList()
@@ -71,8 +73,8 @@ class ToDoViewModel : ViewModel() {
     fun updateItemById(
         id: String,
         todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest
-    ) {
-        viewModelScope.launch {
+    ): Job {
+        return viewModelScope.launch {
             val result =
                 repository.updateToDoItemById(id, todoPostPutDeleteItemRequest, _revision.value)
             result.onSuccess {
@@ -88,6 +90,7 @@ class ToDoViewModel : ViewModel() {
             }
         }
     }
+
 
     fun getItemById(
         toDoItemId: String,
