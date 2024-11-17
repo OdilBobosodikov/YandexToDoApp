@@ -19,11 +19,19 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -37,43 +45,79 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
-import androidx.navigation.navArgument
-import com.example.yandex_to_do_app.MainActivity.Route
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
-import com.example.yandex_to_do_app.model.ToDoItem
+import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.Importance
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
+import kotlinx.coroutines.launch
+import java.util.Date
 
 
 @Composable
-fun MainScreen(createTask: () -> Unit,
-               updateTask: (ToDoItem) -> Unit,
-               viewModel: ToDoViewModel = ToDoViewModel()) {
-    val isVisible = remember { mutableStateOf(false) }
+fun MainScreen(
+    createTask: () -> Unit,
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
+    viewModel: ToDoViewModel = ToDoViewModel()
+) {
+    val errorMessage = viewModel.errorMessage.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val coroutineScope = rememberCoroutineScope()
 
-    val numberOfCompletedTasks = remember { mutableStateOf(viewModel.completedItemCount) }
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(colorResource(id = R.color.back_primary))
-    )
-    {
-        Column(modifier = Modifier.fillMaxSize())
-        {
-            Header(isVisible, numberOfCompletedTasks)
-            ListOfItems(isVisible, numberOfCompletedTasks, updateTask, viewModel)
+    LaunchedEffect(errorMessage) {
+        errorMessage.value?.let {
+            coroutineScope.launch {
+                snackbarHostState.showSnackbar(
+                    message = it,
+                    actionLabel = "OK",
+                    duration = SnackbarDuration.Short
+                )
+                viewModel.clearError()
+            }
         }
-        CreateNewTaskBottom(createTask)
     }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.updateList()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
+    ) {
+        it
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(colorResource(id = R.color.back_primary))
+        )
+        {
+            Column(modifier = Modifier.fillMaxSize())
+            {
+                Header(viewModel)
+                ListOfItems(updateTask, viewModel)
+            }
+            CreateNewTaskBottom(viewModel, createTask)
+        }
+    }
+
+
 }
 
 @Composable
-fun Header(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
+fun Header(viewModel: ToDoViewModel) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -83,12 +127,14 @@ fun Header(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutabl
             text = "Мои дела",
             style = AppTypography().titleLarge
         )
-        ToolBar(isVisibleState, numberOfCompletedTasks)
+        ToolBar(viewModel)
     }
 }
 
 @Composable
-fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: MutableState<Int>) {
+fun ToolBar(viewModel: ToDoViewModel) {
+    val isVisible = viewModel.isVisible.collectAsState()
+    val numberOfCompletedTasks = viewModel.numberOfCheckedItems.collectAsState()
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -100,9 +146,9 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
             modifier = Modifier.align(Alignment.CenterVertically)
         )
         Spacer(modifier = Modifier.weight(1f))
-        IconButton({ isVisibleState.value = !isVisibleState.value })
+        IconButton({ viewModel.updateVisibleState() })
         {
-            if (isVisibleState.value) {
+            if (isVisible.value) {
                 Icon(
                     painter = painterResource(id = R.drawable.ic_eye_off),
                     contentDescription = "Don't display completed tasks",
@@ -120,12 +166,13 @@ fun ToolBar(isVisibleState: MutableState<Boolean>, numberOfCompletedTasks: Mutab
 }
 
 @Composable
-fun ListOfItems(isVisibleState: MutableState<Boolean>,
-                numberOfCompletedTasks: MutableState<Int>,
-                updateTask: (ToDoItem) -> Unit,
-                viewModel: ToDoViewModel) {
+fun ListOfItems(
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
+    viewModel: ToDoViewModel
+) {
 
-    val todoItems = viewModel.todoItems.value
+    val toDoList by viewModel.toDoList.collectAsState()
+    val isVisible = viewModel.isVisible.collectAsState()
 
     LazyColumn(
         modifier = Modifier
@@ -136,12 +183,12 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>,
     {
 
         itemsIndexed(
-            todoItems,
+            toDoList,
             key = { _, item -> item.id }) { i, item ->
-            if (!isVisibleState.value && !item.isCompleted || isVisibleState.value) {
-                ListItem(item, numberOfCompletedTasks, updateTask, viewModel)
+            if (!isVisible.value && !item.done || isVisible.value) {
+                ListItem(item, updateTask, viewModel)
             }
-            if (i == todoItems.count() - 1 || todoItems.count() == 0) {
+            if (i == toDoList.lastIndex || toDoList.isEmpty()) {
                 Text(
                     text = "Новое",
                     modifier = Modifier
@@ -158,24 +205,22 @@ fun ListOfItems(isVisibleState: MutableState<Boolean>,
 
 @Composable
 fun ListItem(
-    toDoItem: ToDoItem,
-    numberOfCompletedTasks: MutableState<Int>,
-    updateTask: (ToDoItem) -> Unit,
+    todoItemResponse: TodoListResponse.TodoItemResponse,
+    updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
-
-    val item = remember { mutableStateOf(toDoItem) }
+    val item = remember { mutableStateOf(todoItemResponse) }
     val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
     val iconColorId = remember { mutableStateOf(R.color.support_separator) }
     val textColorResId = remember { mutableStateOf(R.color.primary) }
     val textDecoration = remember { mutableStateOf(TextDecoration.None) }
     val isLowImportanceSet = remember { mutableStateOf(false) }
-    val isTaskCompleted = remember { mutableStateOf(item.value.isCompleted) }
-    if (item.value.importance == Importance.Low) {
+    val isTaskCompleted = remember { mutableStateOf(item.value.done) }
+    if (item.value.importance == "low") {
         isLowImportanceSet.value = true
     }
 
-    if (item.value.importance == Importance.High && !isTaskCompleted.value) {
+    if (item.value.importance == "important" && !isTaskCompleted.value) {
         iconResId.value = R.drawable.ic_high_importance
         textColorResId.value = R.color.red
         textDecoration.value = TextDecoration.None
@@ -197,26 +242,26 @@ fun ListItem(
         IconButton(onClick =
         {
             isTaskCompleted.value = !isTaskCompleted.value
-            viewModel.updateItemCompletionStatus(item.value, isTaskCompleted.value)
-            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
+            viewModel.updateUIElement(item.value.copy(done = isTaskCompleted.value))
+            if (item.value.importance == "important" && !isTaskCompleted.value) {
                 iconResId.value = R.drawable.ic_high_importance
                 textColorResId.value = R.color.red
                 iconColorId.value = R.color.red
                 textDecoration.value = TextDecoration.None
-                numberOfCompletedTasks.value -= 1
+                viewModel.updateCounterOfCheckedItems(increase = false)
             } else if (isTaskCompleted.value) {
                 isLowImportanceSet.value = false
                 iconResId.value = R.drawable.ic_checked
                 textColorResId.value = R.color.tertiary
                 iconColorId.value = R.color.green
                 textDecoration.value = TextDecoration.LineThrough
-                numberOfCompletedTasks.value += 1
+                viewModel.updateCounterOfCheckedItems(increase = true)
             } else {
                 iconResId.value = R.drawable.ic_unchecked
                 textColorResId.value = R.color.primary
                 iconColorId.value = R.color.support_separator
                 textDecoration.value = TextDecoration.None
-                numberOfCompletedTasks.value -= 1
+                viewModel.updateCounterOfCheckedItems(increase = false)
             }
         })
         {
@@ -226,85 +271,74 @@ fun ListItem(
                 tint = colorResource(iconColorId.value)
             )
         }
-        if (isTaskCompleted.value) {
-            textDecoration.value = TextDecoration.LineThrough
-            textColorResId.value = R.color.tertiary
-            Text(
-                text = item.value.text,
-                style = TextStyle(
-                    fontFamily = robotoFontFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colorResource(textColorResId.value),
-                    textDecoration = textDecoration.value
-                ),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.width(270.dp)
-            )
-        } else {
-            if (item.value.importance == Importance.High && !isTaskCompleted.value) {
-                Row()
-                {
-                    textColorResId.value = R.color.red
-                    Text(
-                        text = "!!",
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(textColorResId.value),
-                    )
-                    Spacer(Modifier.width(3.dp))
-                    Text(
-                        text = item.value.text,
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.primary),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.width(270.dp)
-                    )
-                }
-            } else if (isLowImportanceSet.value) {
-                Row()
-                {
-                    textColorResId.value = R.color.red
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_low_importance),
-                        contentDescription = "Low Importance",
-                        tint = colorResource(id = R.color.grey_light),
-                        modifier = Modifier.padding(top = 3.dp)
-                    )
-                    Text(
-                        text = item.value.text,
-                        style = AppTypography().bodyMedium,
-                        color = colorResource(R.color.primary),
-                        maxLines = 3,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.width(270.dp)
-                    )
-                }
-            }
-            else
-            {
+
+        Row()
+        {
+            if (item.value.importance == "important" && !isTaskCompleted.value) {
+                textColorResId.value = R.color.red
                 Text(
-                    text = item.value.text,
+                    text = "!!",
                     style = AppTypography().bodyMedium,
-                    color = colorResource(R.color.primary),
-                    maxLines = 3,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.width(270.dp)
+                    color = colorResource(textColorResId.value),
+                )
+                Spacer(Modifier.width(3.dp))
+            } else if (isLowImportanceSet.value && !isTaskCompleted.value) {
+                Icon(
+                    painter = painterResource(id = R.drawable.ic_low_importance),
+                    contentDescription = "Low Importance",
+                    tint = colorResource(id = R.color.grey_light),
+                    modifier = Modifier.padding(top = 3.dp)
                 )
             }
+            Column {
+                if (isTaskCompleted.value) {
+                    textDecoration.value = TextDecoration.LineThrough
+                    textColorResId.value = R.color.tertiary
+                    Text(
+                        text = item.value.text,
+                        style = TextStyle(
+                            fontFamily = robotoFontFamily,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = colorResource(textColorResId.value),
+                            textDecoration = textDecoration.value
+                        ),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(270.dp)
+                    )
+                } else {
+                    Text(
+                        text = item.value.text,
+                        style = AppTypography().bodyMedium,
+                        color = colorResource(R.color.primary),
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.width(270.dp)
+                    )
+                }
+                if (item.value.deadline != null) {
+                    Text(
+                        text = viewModel.getFormattedDeadline(Date(item.value.deadline!!)),
+                        style = AppTypography().headlineSmall,
+                        color = colorResource(R.color.tertiary)
+                    )
+                }
+            }
         }
-        val isUpdatingTask  = remember { mutableStateOf(false) }
+        val isUpdatingTask = remember { mutableStateOf(false) }
 
         Spacer(modifier = Modifier.weight(1f))
-        IconButton(onClick = {
-            if(!isUpdatingTask.value)
-            {
-                isUpdatingTask.value = true
-                updateTask(item.value)
-            }
-        },
-            enabled = !isUpdatingTask.value)
+        IconButton(
+            onClick = {
+                if (!isUpdatingTask.value) {
+                    isUpdatingTask.value = true
+                    viewModel.updateList()
+                    updateTask(item.value)
+                }
+            },
+            enabled = !isUpdatingTask.value
+        )
         {
             Icon(
                 painter = painterResource(id = R.drawable.ic_info),
@@ -315,9 +349,11 @@ fun ListItem(
     }
 }
 
-
 @Composable
-fun CreateNewTaskBottom(createTask: () -> Unit) {
+fun CreateNewTaskBottom(
+    viewModel: ToDoViewModel,
+    createTask: () -> Unit
+) {
     val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
@@ -326,6 +362,7 @@ fun CreateNewTaskBottom(createTask: () -> Unit) {
             onClick = {
                 if (!isCreatingTask.value) {
                     isCreatingTask.value = true
+                    viewModel.updateList()
                     createTask()
                 }
             },
@@ -352,29 +389,8 @@ fun CreateNewTaskBottom(createTask: () -> Unit) {
 @Composable
 fun MainActivityPreview() {
     YandexToDoAppTheme {
-        val navController = rememberNavController()
         YandexToDoAppTheme {
-            NavHost(navController, Route.mainScreen)
-            {
-                composable(route = Route.mainScreen)
-                {
-                    MainScreen(
-                        createTask = {
-                            navController.navigate("formScreen") },
-                        updateTask = { toDoItem ->
-                            navController.navigate("formScreen/${toDoItem.id}")
-                        }
-                    )
-                }
-
-                composable("formScreen/{toDoItemId}", arguments = listOf(navArgument("toDoItemId") { defaultValue = -1 })) {
-                    val toDoItemId = it.arguments?.getInt("toDoItemId") ?: -1
-                    FormScreen(
-                        navController = navController,
-                        toDoItemId = toDoItemId
-                    )
-                }
-            }
+            MainScreen({}, {})
         }
     }
 }
