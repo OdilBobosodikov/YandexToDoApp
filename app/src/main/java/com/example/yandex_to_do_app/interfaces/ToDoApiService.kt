@@ -21,8 +21,10 @@ interface ToDoApiService {
     suspend fun getItemById(@Path("id") id: String): TodoOneItemResponse
 
     @POST("list")
-    suspend fun postItem(@Body todo: TodoPostPutDeleteItemRequest,
-                         @Header("X-Last-Known-Revision") lastKnownRevision: Int): TodoPostPutDeleteItemRequest
+    suspend fun postItem(
+        @Body todo: TodoPostPutDeleteItemRequest,
+        @Header("X-Last-Known-Revision") lastKnownRevision: Int
+    ): TodoPostPutDeleteItemRequest
 
     @PUT("list/{id}")
     suspend fun updateItemById(
@@ -32,10 +34,14 @@ interface ToDoApiService {
     ): TodoPostPutDeleteItemRequest
 
     @DELETE("list/{id}")
-    suspend fun deleteItemById(@Path("id") id: String,
-                               @Header("X-Last-Known-Revision") lastKnownRevision: Int): TodoPostPutDeleteItemRequest
+    suspend fun deleteItemById(
+        @Path("id") id: String,
+        @Header("X-Last-Known-Revision") lastKnownRevision: Int
+    ): TodoPostPutDeleteItemRequest
 
     @PATCH("list")
-    suspend fun updateList(@Body items: UpdateListRequest,
-        @Header("X-Last-Known-Revision") lastKnownRevision: Int): TodoListResponse
+    suspend fun updateList(
+        @Body items: UpdateListRequest,
+        @Header("X-Last-Known-Revision") lastKnownRevision: Int
+    ): TodoListResponse
 }

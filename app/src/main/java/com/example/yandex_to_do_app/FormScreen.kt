@@ -68,7 +68,6 @@ fun FormScreen(
     val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
     val createdAt: MutableState<Long> = remember { mutableLongStateOf(Date().time) }
     val coroutineScope = rememberCoroutineScope()
-    var toDoItemId = toDoItemId
 
     if (toDoItemId != "") {
         viewModel.getItemById(toDoItemId) {
@@ -76,12 +75,9 @@ fun FormScreen(
             importanceState.value = it?.importance ?: "basic"
             deadlineDateState.value = it?.deadline?.let { Date(it) }
             createdAt.value = it?.createdAt ?: Date().time
-            toDoItemId = it?.id ?: ""
             completionState.value = it?.done ?: false
         }
     }
-
-
 
     Column(
         modifier = Modifier
