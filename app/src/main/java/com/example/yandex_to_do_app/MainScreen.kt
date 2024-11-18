@@ -1,6 +1,7 @@
 package com.example.yandex_to_do_app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +42,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ fun MainScreen(
     val errorMessage = viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val isButtonClicked = remember { mutableStateOf(false) }
 
     LaunchedEffect(errorMessage) {
         errorMessage.value?.let {
@@ -107,9 +109,9 @@ fun MainScreen(
             Column(modifier = Modifier.fillMaxSize())
             {
                 Header(viewModel)
-                ListOfItems(updateTask, viewModel)
+                ListOfItems(updateTask, createTask, viewModel, isButtonClicked)
             }
-            CreateNewTaskBottom(viewModel, createTask)
+            CreateNewTaskBottom(viewModel, createTask, isButtonClicked)
         }
     }
 
@@ -168,9 +170,10 @@ fun ToolBar(viewModel: ToDoViewModel) {
 @Composable
 fun ListOfItems(
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
-    viewModel: ToDoViewModel
+    createTask: () -> Unit,
+    viewModel: ToDoViewModel,
+    isButtonClicked: MutableState<Boolean>
 ) {
-
     val toDoList by viewModel.toDoList.collectAsState()
     val isVisible = viewModel.isVisible.collectAsState()
 
@@ -186,13 +189,20 @@ fun ListOfItems(
             toDoList,
             key = { _, item -> item.id }) { i, item ->
             if (!isVisible.value && !item.done || isVisible.value) {
-                ListItem(item, updateTask, viewModel)
+                ListItem(item, updateTask, viewModel, isButtonClicked)
             }
             if (i == toDoList.lastIndex || toDoList.isEmpty()) {
                 Text(
                     text = "Новое",
                     modifier = Modifier
-                        .padding(horizontal = 48.dp, vertical = 15.dp),
+                        .padding(horizontal = 48.dp, vertical = 15.dp)
+                        .clickable {
+                            if (!isButtonClicked.value) {
+                                isButtonClicked.value = true
+                                viewModel.updateList()
+                                createTask()
+                            }
+                        },
                     fontFamily = robotoFontFamily,
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Normal,
@@ -207,10 +217,10 @@ fun ListOfItems(
 fun ListItem(
     todoItemResponse: TodoListResponse.TodoItemResponse,
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
-    viewModel: ToDoViewModel
+    viewModel: ToDoViewModel,
+    isButtonClicked: MutableState<Boolean>
 ) {
     val taskStyle = viewModel.getTaskStyle(todoItemResponse)
-    val isUpdatingTask = remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -286,13 +296,13 @@ fun ListItem(
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = {
-                if (!isUpdatingTask.value) {
-                    isUpdatingTask.value = true
+                if (!isButtonClicked.value) {
+                    isButtonClicked.value = true
                     viewModel.updateList()
                     updateTask(todoItemResponse)
                 }
             },
-            enabled = !isUpdatingTask.value
+            enabled = !isButtonClicked.value
         )
         {
             Icon(
@@ -307,16 +317,16 @@ fun ListItem(
 @Composable
 fun CreateNewTaskBottom(
     viewModel: ToDoViewModel,
-    createTask: () -> Unit
+    createTask: () -> Unit,
+    isButtonClicked: MutableState<Boolean>
 ) {
-    val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         FloatingActionButton(
             onClick = {
-                if (!isCreatingTask.value) {
-                    isCreatingTask.value = true
+                if (!isButtonClicked.value) {
+                    isButtonClicked.value = true
                     viewModel.updateList()
                     createTask()
                 }
@@ -326,7 +336,7 @@ fun CreateNewTaskBottom(
                 .padding(bottom = 25.dp, end = 10.dp)
                 .size(56.dp)
                 .then(
-                    if (isCreatingTask.value) Modifier.pointerInput(Unit) { } else Modifier
+                    if (isButtonClicked.value) Modifier.pointerInput(Unit) { } else Modifier
                 ),
             containerColor = colorResource(R.color.blue),
             shape = CircleShape,
