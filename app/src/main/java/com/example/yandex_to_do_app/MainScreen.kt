@@ -209,28 +209,8 @@ fun ListItem(
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
     viewModel: ToDoViewModel
 ) {
-    val item = remember { mutableStateOf(todoItemResponse) }
-    val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
-    val iconColorId = remember { mutableStateOf(R.color.support_separator) }
-    val textColorResId = remember { mutableStateOf(R.color.primary) }
-    val textDecoration = remember { mutableStateOf(TextDecoration.None) }
-    val isLowImportanceSet = remember { mutableStateOf(false) }
-    val isTaskCompleted = remember { mutableStateOf(item.value.done) }
-    if (item.value.importance == "low") {
-        isLowImportanceSet.value = true
-    }
-
-    if (item.value.importance == "important" && !isTaskCompleted.value) {
-        iconResId.value = R.drawable.ic_high_importance
-        textColorResId.value = R.color.red
-        textDecoration.value = TextDecoration.None
-        iconColorId.value = R.color.red
-    } else if (isTaskCompleted.value) {
-        iconResId.value = R.drawable.ic_checked
-        textColorResId.value = R.color.tertiary
-        textDecoration.value = TextDecoration.LineThrough
-        iconColorId.value = R.color.green
-    }
+    val taskStyle = viewModel.getTaskStyle(todoItemResponse)
+    val isUpdatingTask = remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
@@ -241,67 +221,43 @@ fun ListItem(
     {
         IconButton(onClick =
         {
-            isTaskCompleted.value = !isTaskCompleted.value
-            viewModel.updateUIElement(item.value.copy(done = isTaskCompleted.value))
-            if (item.value.importance == "important" && !isTaskCompleted.value) {
-                iconResId.value = R.drawable.ic_high_importance
-                textColorResId.value = R.color.red
-                iconColorId.value = R.color.red
-                textDecoration.value = TextDecoration.None
-                viewModel.updateCounterOfCheckedItems(increase = false)
-            } else if (isTaskCompleted.value) {
-                isLowImportanceSet.value = false
-                iconResId.value = R.drawable.ic_checked
-                textColorResId.value = R.color.tertiary
-                iconColorId.value = R.color.green
-                textDecoration.value = TextDecoration.LineThrough
-                viewModel.updateCounterOfCheckedItems(increase = true)
-            } else {
-                iconResId.value = R.drawable.ic_unchecked
-                textColorResId.value = R.color.primary
-                iconColorId.value = R.color.support_separator
-                textDecoration.value = TextDecoration.None
-                viewModel.updateCounterOfCheckedItems(increase = false)
-            }
+            viewModel.toggleTaskCompletion(todoItemResponse)
         })
         {
             Icon(
-                painter = painterResource(id = iconResId.value),
+                painter = painterResource(id = taskStyle.iconResId),
                 contentDescription = "Check as completed",
-                tint = colorResource(iconColorId.value)
+                tint = colorResource(taskStyle.iconColorId)
             )
         }
 
         Row()
         {
-            if (item.value.importance == "important" && !isTaskCompleted.value) {
-                textColorResId.value = R.color.red
+            if (todoItemResponse.importance == "important" && !todoItemResponse.done) {
                 Text(
                     text = "!!",
                     style = AppTypography().bodyMedium,
-                    color = colorResource(textColorResId.value),
+                    color = colorResource(taskStyle.textColorResId),
                 )
                 Spacer(Modifier.width(3.dp))
-            } else if (isLowImportanceSet.value && !isTaskCompleted.value) {
+            } else if (todoItemResponse.importance == "low" && !todoItemResponse.done) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_low_importance),
+                    painter = painterResource(R.drawable.ic_low_importance),
                     contentDescription = "Low Importance",
-                    tint = colorResource(id = R.color.grey_light),
+                    tint = colorResource(taskStyle.iconColorId),
                     modifier = Modifier.padding(top = 3.dp)
                 )
             }
             Column {
-                if (isTaskCompleted.value) {
-                    textDecoration.value = TextDecoration.LineThrough
-                    textColorResId.value = R.color.tertiary
+                if (todoItemResponse.done) {
                     Text(
-                        text = item.value.text,
+                        text = todoItemResponse.text,
                         style = TextStyle(
                             fontFamily = robotoFontFamily,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
-                            color = colorResource(textColorResId.value),
-                            textDecoration = textDecoration.value
+                            color = colorResource(taskStyle.textColorResId),
+                            textDecoration = taskStyle.textDecoration
                         ),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -309,7 +265,7 @@ fun ListItem(
                     )
                 } else {
                     Text(
-                        text = item.value.text,
+                        text = todoItemResponse.text,
                         style = AppTypography().bodyMedium,
                         color = colorResource(R.color.primary),
                         maxLines = 3,
@@ -317,16 +273,15 @@ fun ListItem(
                         modifier = Modifier.width(270.dp)
                     )
                 }
-                if (item.value.deadline != null) {
+                if (todoItemResponse.deadline != null) {
                     Text(
-                        text = viewModel.getFormattedDeadline(Date(item.value.deadline!!)),
+                        text = viewModel.getFormattedDeadline(Date(todoItemResponse.deadline)),
                         style = AppTypography().headlineSmall,
                         color = colorResource(R.color.tertiary)
                     )
                 }
             }
         }
-        val isUpdatingTask = remember { mutableStateOf(false) }
 
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
@@ -334,7 +289,7 @@ fun ListItem(
                 if (!isUpdatingTask.value) {
                     isUpdatingTask.value = true
                     viewModel.updateList()
-                    updateTask(item.value)
+                    updateTask(todoItemResponse)
                 }
             },
             enabled = !isUpdatingTask.value

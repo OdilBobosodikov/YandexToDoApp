@@ -1,7 +1,10 @@
 package com.example.yandex_to_do_app.ViewModel
 
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.yandex_to_do_app.R
+import com.example.yandex_to_do_app.model.ListItemState
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.model.UpdateListRequest
@@ -25,6 +28,9 @@ class ToDoViewModel : ViewModel() {
         getToDoItems()
     }
 
+    val appDateFormat: SimpleDateFormat
+        get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
+
     private val _toDoList = MutableStateFlow<MutableList<TodoListResponse.TodoItemResponse>>(
         mutableListOf()
     )
@@ -41,16 +47,53 @@ class ToDoViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
-    fun updateCounterOfCheckedItems(increase: Boolean = true) {
+    fun getTaskStyle(task: TodoListResponse.TodoItemResponse): ListItemState {
+        val isCompleted = task.done
+        return when {
+            task.importance == "important" && !isCompleted -> ListItemState(
+                iconResId = R.drawable.ic_high_importance,
+                iconColorId = R.color.red,
+                textColorResId = R.color.red,
+                textDecoration = TextDecoration.None,
+                done = false
+            )
+            isCompleted -> ListItemState(
+                iconResId = R.drawable.ic_checked,
+                iconColorId = R.color.green,
+                textColorResId = R.color.tertiary,
+                textDecoration = TextDecoration.LineThrough,
+                done = true
+            )
+            else -> ListItemState(
+                iconResId = R.drawable.ic_unchecked,
+                iconColorId = R.color.support_separator,
+                textColorResId = R.color.primary,
+                textDecoration = TextDecoration.None,
+                done = false
+            )
+        }
+    }
+    fun toggleTaskCompletion(task: TodoListResponse.TodoItemResponse) {
+        val updatedTask = task.copy(done = !task.done, changedAt = Date().time)
+        _toDoList.value = _toDoList.value.map {
+            if (it.id == task.id) updatedTask else it
+        }.toMutableList()
+        updateCounterOfCheckedItems(updatedTask.done)
+    }
+
+    private fun updateCounterOfCheckedItems(increase: Boolean = true) {
         if (increase) {
             _numberOfCheckedItems.value += 1
         } else {
             _numberOfCheckedItems.value -= 1
         }
     }
-
     fun updateVisibleState() {
         _isVisible.value = !_isVisible.value
+    }
+    fun getFormattedDeadline(date: Date?): String {
+        if (date != null) return appDateFormat.format(date)
+        return ""
     }
 
     fun clearError() {
@@ -90,7 +133,6 @@ class ToDoViewModel : ViewModel() {
             }
         }
     }
-
 
     fun getItemById(
         toDoItemId: String,
@@ -173,21 +215,6 @@ class ToDoViewModel : ViewModel() {
                 }
             }
         }
-    }
-
-    val appDateFormat: SimpleDateFormat
-        get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
-
-    fun getFormattedDeadline(date: Date?): String {
-        if (date != null) return appDateFormat.format(date)
-        return ""
-    }
-
-    fun updateUIElement(todoItem: TodoListResponse.TodoItemResponse) {
-
-        _toDoList.value = _toDoList.value.map {
-            if (it.id == todoItem.id) todoItem.copy(changedAt = Date().time) else it
-        }.toMutableList()
     }
 
     fun updateList() {
