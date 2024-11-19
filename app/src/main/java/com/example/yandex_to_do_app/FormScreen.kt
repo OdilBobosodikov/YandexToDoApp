@@ -149,7 +149,7 @@ fun FormScreen(
 
 @Composable
 fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
-    //тут баг был когда State обновлялся раз 5-6 и Switch значение менял, поэтому оставил пока так
+    //тут баг был когда State обновлялся раз 5-6 и Switch значение менял c true на false b наоборот, поэтому оставил пока так
     val isToggleOn = remember { mutableStateOf(false) }
     val initialDateSet = remember { mutableStateOf(false) }
     val selectedDate = remember { mutableStateOf("") }
@@ -287,17 +287,21 @@ fun ImportanceSection(viewModel: ToDoViewModel, formState: State<FormState>) {
             style = AppTypography().bodyMedium,
         )
 
-        if (formState.value.importance == "important") {
-            viewModel.updateFormState(
-                importanceState = FormState.ImportanceState(
-                    "!! Высокий",
-                    R.color.red
+        when (formState.value.importance) {
+            "important" -> {
+                viewModel.updateFormState(
+                    importanceState = FormState.ImportanceState(
+                        "!! Высокий",
+                        R.color.red
+                    )
                 )
-            )
-        } else if (formState.value.importance == "basic") {
-            viewModel.updateFormState(importanceState = FormState.ImportanceState())
-        } else {
-            viewModel.updateFormState(importanceState = FormState.ImportanceState("Низкий"))
+            }
+            "basic" -> {
+                viewModel.updateFormState(importanceState = FormState.ImportanceState())
+            }
+            else -> {
+                viewModel.updateFormState(importanceState = FormState.ImportanceState("Низкий"))
+            }
         }
 
         Text(

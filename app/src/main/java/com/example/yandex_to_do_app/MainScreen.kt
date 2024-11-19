@@ -114,8 +114,6 @@ fun MainScreen(
             CreateNewTaskBottom(viewModel, createTask, isButtonClicked)
         }
     }
-
-
 }
 
 @Composable
