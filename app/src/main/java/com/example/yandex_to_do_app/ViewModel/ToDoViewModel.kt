@@ -96,7 +96,9 @@ class ToDoViewModel : ViewModel() {
                     importance = it?.importance ?: "basic",
                     deadline = it?.deadline?.let { deadline -> Date(deadline) },
                     createdAt = it?.createdAt ?: Date().time,
-                    done = it?.done ?: false
+                    done = it?.done ?: false,
+                    dateState = FormState.DateState(),
+                    importanceState = FormState.ImportanceState()
                 )
             }
         }
@@ -105,13 +107,17 @@ class ToDoViewModel : ViewModel() {
     fun updateFormState(text: String? = null,
                         importance: String? = null,
                         deadline: Date? = Date(0),
-                        done: Boolean? = null)
+                        done: Boolean? = null,
+                        dateState: FormState.DateState? = null,
+                        importanceState: FormState.ImportanceState? = null)
     {
         _formState.value = _formState.value.copy(
             text = text ?: _formState.value.text,
             importance = importance ?: _formState.value.importance,
             deadline = if (deadline == Date(0)) _formState.value.deadline else deadline,
-            done = done ?: _formState.value.done
+            done = done ?: _formState.value.done,
+            dateState = dateState ?: _formState.value.dateState,
+            importanceState = importanceState ?: _formState.value.importanceState
         )
     }
 
