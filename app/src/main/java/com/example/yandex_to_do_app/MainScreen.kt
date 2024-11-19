@@ -220,7 +220,7 @@ fun ListItem(
     viewModel: ToDoViewModel,
     isButtonClicked: MutableState<Boolean>
 ) {
-    val taskStyle = viewModel.getTaskStyle(todoItemResponse)
+    val taskStyle = viewModel.getTaskState(todoItemResponse)
 
     Row(
         modifier = Modifier
@@ -240,7 +240,6 @@ fun ListItem(
                 tint = colorResource(taskStyle.iconColorId)
             )
         }
-
         Row()
         {
             if (todoItemResponse.importance == "important" && !todoItemResponse.done) {
@@ -292,7 +291,6 @@ fun ListItem(
                 }
             }
         }
-
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = {
@@ -333,8 +331,8 @@ fun CreateNewTaskBottom(
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 25.dp, end = 10.dp)
-                .size(56.dp)
+                .padding(bottom = 50.dp, end = 10.dp)
+                .size(72.dp)
                 .then(
                     if (isButtonClicked.value) Modifier.pointerInput(Unit) { } else Modifier
                 ),

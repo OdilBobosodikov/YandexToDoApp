@@ -27,10 +27,8 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -65,6 +63,7 @@ fun FormScreen(
 ) {
     val coroutineScope = rememberCoroutineScope()
     val formState = viewModel.formState.collectAsState()
+    val isButtonClicked = remember { mutableStateOf(false) }
     viewModel.getFormState(toDoItemId)
 
     Column(
@@ -76,7 +75,12 @@ fun FormScreen(
         Row(modifier = Modifier.fillMaxWidth())
         {
             IconButton(
-                { navController.popBackStack() },
+                {
+                    if (!isButtonClicked.value) {
+                        isButtonClicked.value = true
+                        navController.popBackStack()
+                    }
+                },
                 modifier = Modifier.size(24.dp)
             )
             {
@@ -89,37 +93,40 @@ fun FormScreen(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .clickable {
-                        coroutineScope.launch {
-                            if (toDoItemId != "") {
-                                viewModel
-                                    .updateItemById(
-                                        toDoItemId,
-                                        TodoPostPutDeleteItemRequest(
-                                            status = "ok",
-                                            element = TodoListResponse.TodoItemResponse(
-                                                id = toDoItemId,
-                                                text = formState.value.text,
-                                                importance = formState.value.importance,
-                                                deadline = formState.value.deadline?.time,
-                                                done = formState.value.done,
-                                                createdAt = formState.value.createdAt,
-                                                changedAt = Date().time,
-                                                lastUpdatedBy = "qwe"
+                        if (!isButtonClicked.value) {
+                            isButtonClicked.value = true
+                            coroutineScope.launch {
+                                if (toDoItemId != "") {
+                                    viewModel
+                                        .updateItemById(
+                                            toDoItemId,
+                                            TodoPostPutDeleteItemRequest(
+                                                status = "ok",
+                                                element = TodoListResponse.TodoItemResponse(
+                                                    id = toDoItemId,
+                                                    text = formState.value.text,
+                                                    importance = formState.value.importance,
+                                                    deadline = formState.value.deadline?.time,
+                                                    done = formState.value.done,
+                                                    createdAt = formState.value.createdAt,
+                                                    changedAt = Date().time,
+                                                    lastUpdatedBy = "qwe"
+                                                )
                                             )
                                         )
+                                        .join()
+                                    viewModel
+                                        .getToDoItems()
+                                        .join()
+                                } else {
+                                    viewModel.postToDoItem(
+                                        text = formState.value.text,
+                                        importance = formState.value.importance,
+                                        deadline = formState.value.deadline,
                                     )
-                                    .join()
-                                viewModel
-                                    .getToDoItems()
-                                    .join()
-                            } else {
-                                viewModel.postToDoItem(
-                                    text = formState.value.text,
-                                    importance = formState.value.importance,
-                                    deadline = formState.value.deadline,
-                                )
+                                }
+                                navController.popBackStack()
                             }
-                            navController.popBackStack()
                         }
                     }
             )
@@ -142,6 +149,7 @@ fun FormScreen(
 
 @Composable
 fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
+    //тут баг был когда State обновлялся раз 5-6 и Switch значение менял, поэтому оставил пока так
     val isToggleOn = remember { mutableStateOf(false) }
     val initialDateSet = remember { mutableStateOf(false) }
     val selectedDate = remember { mutableStateOf("") }
