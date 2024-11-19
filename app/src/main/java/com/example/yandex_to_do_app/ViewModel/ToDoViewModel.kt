@@ -4,6 +4,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yandex_to_do_app.R
+import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.model.ListItemState
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
@@ -47,6 +48,9 @@ class ToDoViewModel : ViewModel() {
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage = _errorMessage.asStateFlow()
 
+    private val _formState = MutableStateFlow(FormState())
+    val formState = _formState.asStateFlow()
+
     fun getTaskStyle(task: TodoListResponse.TodoItemResponse): ListItemState {
         val isCompleted = task.done
         return when {
@@ -57,6 +61,7 @@ class ToDoViewModel : ViewModel() {
                 textDecoration = TextDecoration.None,
                 done = false
             )
+
             isCompleted -> ListItemState(
                 iconResId = R.drawable.ic_checked,
                 iconColorId = R.color.green,
@@ -64,6 +69,7 @@ class ToDoViewModel : ViewModel() {
                 textDecoration = TextDecoration.LineThrough,
                 done = true
             )
+
             else -> ListItemState(
                 iconResId = R.drawable.ic_unchecked,
                 iconColorId = R.color.support_separator,
@@ -73,6 +79,7 @@ class ToDoViewModel : ViewModel() {
             )
         }
     }
+
     fun toggleTaskCompletion(task: TodoListResponse.TodoItemResponse) {
         val updatedTask = task.copy(done = !task.done, changedAt = Date().time)
         _toDoList.value = _toDoList.value.map {
@@ -81,6 +88,36 @@ class ToDoViewModel : ViewModel() {
         updateCounterOfCheckedItems(updatedTask.done)
     }
 
+    fun getFormState(id: String) {
+        if (id.isNotEmpty()) {
+            getItemById(id) {
+                _formState.value = _formState.value.copy(
+                    text = it?.text ?: "",
+                    importance = it?.importance ?: "basic",
+                    deadline = it?.deadline?.let { deadline -> Date(deadline) },
+                    createdAt = it?.createdAt ?: Date().time,
+                    done = it?.done ?: false
+                )
+            }
+        }
+    }
+
+    fun updateFormState(text: String? = null,
+                        importance: String? = null,
+                        deadline: Date? = Date(0),
+                        done: Boolean? = null)
+    {
+        _formState.value = _formState.value.copy(
+            text = text ?: _formState.value.text,
+            importance = importance ?: _formState.value.importance,
+            deadline = if (deadline == Date(0)) _formState.value.deadline else deadline,
+            done = done ?: _formState.value.done
+        )
+    }
+
+
+
+
     private fun updateCounterOfCheckedItems(increase: Boolean = true) {
         if (increase) {
             _numberOfCheckedItems.value += 1
@@ -88,9 +125,11 @@ class ToDoViewModel : ViewModel() {
             _numberOfCheckedItems.value -= 1
         }
     }
+
     fun updateVisibleState() {
         _isVisible.value = !_isVisible.value
     }
+
     fun getFormattedDeadline(date: Date?): String {
         if (date != null) return appDateFormat.format(date)
         return ""
