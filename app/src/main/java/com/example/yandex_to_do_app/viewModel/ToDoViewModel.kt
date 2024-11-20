@@ -1,4 +1,4 @@
-package com.example.yandex_to_do_app.ViewModel
+package com.example.yandex_to_do_app.viewModel
 
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
@@ -32,15 +32,16 @@ class ToDoViewModel : ViewModel() {
     val appDateFormat: SimpleDateFormat
         get() = SimpleDateFormat("d MMMM yyyy", Locale.getDefault())
 
-    private val _toDoList = MutableStateFlow<MutableList<TodoListResponse.TodoItemResponse>>(mutableListOf())
+    private val _toDoList =
+        MutableStateFlow<MutableList<TodoListResponse.TodoItemResponse>>(mutableListOf())
     val toDoList = _toDoList.asStateFlow()
 
-    private val _revision = MutableStateFlow<Int>(0)
+    private val _revision = MutableStateFlow(0)
 
-    private val _isVisible = MutableStateFlow<Boolean>(false)
+    private val _isVisible = MutableStateFlow(false)
     val isVisible = _isVisible.asStateFlow()
 
-    private val _numberOfCheckedItems = MutableStateFlow<Int>(0)
+    private val _numberOfCheckedItems = MutableStateFlow(0)
     val numberOfCheckedItems = _numberOfCheckedItems.asStateFlow()
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -61,9 +62,11 @@ class ToDoViewModel : ViewModel() {
         if (date != null) return appDateFormat.format(date)
         return ""
     }
+
     fun clearError() {
         _errorMessage.value = null
     }
+
     fun updateVisibleState() {
         _isVisible.value = !_isVisible.value
     }
@@ -96,6 +99,7 @@ class ToDoViewModel : ViewModel() {
             )
         }
     }
+
     fun toggleTaskCompletion(task: TodoListResponse.TodoItemResponse) {
         val updatedTask = task.copy(done = !task.done, changedAt = Date().time)
         _toDoList.value = _toDoList.value.map {
@@ -117,18 +121,19 @@ class ToDoViewModel : ViewModel() {
                     importanceState = FormState.ImportanceState()
                 )
             }
-        }
-        else
-        {
+        } else {
             _formState.value = FormState()
         }
     }
-    fun updateFormState(text: String? = null,
-                        importance: String? = null,
-                        deadline: Date? = Date(0),
-                        done: Boolean? = null,
-                        dateState: FormState.DateState? = null,
-                        importanceState: FormState.ImportanceState? = null) {
+
+    fun updateFormState(
+        text: String? = null,
+        importance: String? = null,
+        deadline: Date? = Date(0),
+        done: Boolean? = null,
+        dateState: FormState.DateState? = null,
+        importanceState: FormState.ImportanceState? = null
+    ) {
         _formState.value = _formState.value.copy(
             text = text ?: _formState.value.text,
             importance = importance ?: _formState.value.importance,
@@ -139,7 +144,7 @@ class ToDoViewModel : ViewModel() {
         )
     }
 
-    fun getToDoItems(): Job {
+    private fun getToDoItems(): Job {
         return viewModelScope.launch {
             val result = repository.getAllToDoItems()
             result.onSuccess {
@@ -152,7 +157,7 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun updateItemById(
+    private fun updateItemById(
         id: String,
         todoPostPutDeleteItemRequest: TodoPostPutDeleteItemRequest
     ): Job {
@@ -173,7 +178,37 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun getItemById(
+    fun saveItem(toDoItemId: String) {
+        viewModelScope.launch {
+            if (toDoItemId != "") {
+                updateItemById(
+                    toDoItemId,
+                    TodoPostPutDeleteItemRequest(
+                        status = "ok",
+                        element = TodoListResponse.TodoItemResponse(
+                            id = toDoItemId,
+                            text = _formState.value.text,
+                            importance = _formState.value.importance,
+                            deadline = _formState.value.deadline?.time,
+                            done = _formState.value.done,
+                            createdAt = _formState.value.createdAt,
+                            changedAt = Date().time,
+                            lastUpdatedBy = "qwe"
+                        )
+                    )
+                ).join()
+                getToDoItems().join()
+            } else {
+                postToDoItem(
+                    text = formState.value.text,
+                    importance = formState.value.importance,
+                    deadline = formState.value.deadline
+                )
+            }
+        }
+    }
+
+    private fun getItemById(
         toDoItemId: String,
         onResult: (TodoListResponse.TodoItemResponse?) -> Unit
     ) {
@@ -219,7 +254,7 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun postToDoItem(
+    private fun postToDoItem(
         text: String,
         importance: String,
         deadline: Date?

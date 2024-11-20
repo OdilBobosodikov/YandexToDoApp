@@ -31,7 +31,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,15 +43,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
+import com.example.yandex_to_do_app.viewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.FormState
-import com.example.yandex_to_do_app.model.TodoListResponse
-import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
-import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Date
 
 
 @Composable
@@ -61,7 +56,6 @@ fun FormScreen(
     toDoItemId: String = "",
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
-    val coroutineScope = rememberCoroutineScope()
     val formState = viewModel.formState.collectAsState()
     val isButtonClicked = remember { mutableStateOf(false) }
     viewModel.getFormState(toDoItemId)
@@ -95,38 +89,8 @@ fun FormScreen(
                     .clickable {
                         if (!isButtonClicked.value) {
                             isButtonClicked.value = true
-                            coroutineScope.launch {
-                                if (toDoItemId != "") {
-                                    viewModel
-                                        .updateItemById(
-                                            toDoItemId,
-                                            TodoPostPutDeleteItemRequest(
-                                                status = "ok",
-                                                element = TodoListResponse.TodoItemResponse(
-                                                    id = toDoItemId,
-                                                    text = formState.value.text,
-                                                    importance = formState.value.importance,
-                                                    deadline = formState.value.deadline?.time,
-                                                    done = formState.value.done,
-                                                    createdAt = formState.value.createdAt,
-                                                    changedAt = Date().time,
-                                                    lastUpdatedBy = "qwe"
-                                                )
-                                            )
-                                        )
-                                        .join()
-                                    viewModel
-                                        .getToDoItems()
-                                        .join()
-                                } else {
-                                    viewModel.postToDoItem(
-                                        text = formState.value.text,
-                                        importance = formState.value.importance,
-                                        deadline = formState.value.deadline,
-                                    )
-                                }
-                                navController.popBackStack()
-                            }
+                            viewModel.saveItem(toDoItemId)
+                            navController.popBackStack()
                         }
                     }
             )

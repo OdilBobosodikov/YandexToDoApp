@@ -8,7 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
-import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
+import com.example.yandex_to_do_app.viewModel.ToDoViewModel
 
 
 class MainActivity : ComponentActivity() {
