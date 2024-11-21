@@ -1,4 +1,4 @@
-package com.example.yandex_to_do_app.viewModel
+package com.example.yandex_to_do_app.ViewModel
 
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
@@ -49,6 +49,8 @@ class ToDoViewModel : ViewModel() {
 
     private val _formState = MutableStateFlow(FormState())
     val formState = _formState.asStateFlow()
+
+    private val _currentId = MutableStateFlow("")
 
     private fun updateCounterOfCheckedItems(increase: Boolean = true) {
         if (increase) {
@@ -109,7 +111,12 @@ class ToDoViewModel : ViewModel() {
     }
 
     fun getFormState(id: String) {
-        if (id.isNotEmpty()) {
+        if (id.isEmpty()) {
+            _formState.value = FormState()
+        } else if (id == _currentId.value && _currentId.value != "") {
+            return
+        } else {
+            _currentId.value = id
             getItemById(id) {
                 _formState.value = _formState.value.copy(
                     text = it?.text ?: "",
@@ -121,8 +128,6 @@ class ToDoViewModel : ViewModel() {
                     importanceState = FormState.ImportanceState()
                 )
             }
-        } else {
-            _formState.value = FormState()
         }
     }
 
@@ -178,8 +183,8 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun saveItem(toDoItemId: String) {
-        viewModelScope.launch {
+    fun saveItem(toDoItemId: String) : Job {
+        return viewModelScope.launch {
             if (toDoItemId != "") {
                 updateItemById(
                     toDoItemId,

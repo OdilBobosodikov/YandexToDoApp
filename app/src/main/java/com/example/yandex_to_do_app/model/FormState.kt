@@ -4,6 +4,7 @@ import com.example.yandex_to_do_app.R
 import java.util.Date
 
 data class FormState(
+    val id: String = "",
     val text: String = "",
     val importance: String = "basic",
     val done: Boolean = false,

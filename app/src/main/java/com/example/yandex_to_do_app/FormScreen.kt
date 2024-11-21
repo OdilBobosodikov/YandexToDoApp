@@ -31,6 +31,7 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,10 +44,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
-import com.example.yandex_to_do_app.viewModel.ToDoViewModel
+import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
+import kotlinx.coroutines.launch
 import java.util.Calendar
 
 
@@ -56,10 +58,12 @@ fun FormScreen(
     toDoItemId: String = "",
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
-    val formState = viewModel.formState.collectAsState()
+    LaunchedEffect(toDoItemId) {
+        viewModel.getFormState(toDoItemId)
+    }
     val isButtonClicked = remember { mutableStateOf(false) }
-    viewModel.getFormState(toDoItemId)
-
+    val formState = viewModel.formState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -89,7 +93,9 @@ fun FormScreen(
                     .clickable {
                         if (!isButtonClicked.value) {
                             isButtonClicked.value = true
-                            viewModel.saveItem(toDoItemId)
+                            coroutineScope.launch {
+                                viewModel.saveItem(toDoItemId).join()
+                            }
                             navController.popBackStack()
                         }
                     }
@@ -113,16 +119,13 @@ fun FormScreen(
 
 @Composable
 fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
-    //тут баг был когда State обновлялся раз 5-6 и Switch значение менял c true на false b наоборот, поэтому оставил пока так
-    val isToggleOn = remember { mutableStateOf(false) }
-    val initialDateSet = remember { mutableStateOf(false) }
-    val selectedDate = remember { mutableStateOf("") }
 
     if (formState.value.deadline != null) {
-        selectedDate.value =
+        viewModel.updateFormState(dateState = FormState.DateState(true,
+            true,
             formState.value.deadline?.let { viewModel.appDateFormat.format(it) }.toString()
-        isToggleOn.value = true
-        initialDateSet.value = true
+        )
+        )
     }
 
     val calendar = Calendar.getInstance()
@@ -130,18 +133,22 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
         LocalContext.current,
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
             calendar.set(year, month, dayOfMonth)
-            selectedDate.value = viewModel.appDateFormat.format(calendar.time)
-            viewModel.updateFormState(deadline = calendar.time)
-            isToggleOn.value = true
-            initialDateSet.value = true
+            viewModel.updateFormState(
+                deadline = calendar.time,
+                dateState = FormState.DateState(
+                    true,
+                    true,
+                    viewModel.appDateFormat.format(calendar.time)
+                )
+            )
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    LaunchedEffect(isToggleOn.value && !initialDateSet.value) {
-        if (isToggleOn.value && !initialDateSet.value) {
+    LaunchedEffect(formState.value.dateState.isToggleOn && !formState.value.dateState.initialDateSet) {
+        if (formState.value.dateState.isToggleOn && !formState.value.dateState.initialDateSet) {
             datePickerDialog.show()
         }
     }
@@ -156,9 +163,9 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
                 text = "Сделать до",
                 style = AppTypography().bodyMedium,
             )
-            if (isToggleOn.value) {
+            if (formState.value.dateState.isToggleOn) {
                 Text(
-                    text = selectedDate.value,
+                    text = formState.value.dateState.selectedDate,
                     style = AppTypography().bodySmall,
                     color = colorResource(R.color.blue)
                 )
@@ -166,15 +173,20 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
         }
         Spacer(Modifier.weight(1f))
         Switch(
-            checked = isToggleOn.value,
+            checked = formState.value.dateState.isToggleOn,
             onCheckedChange = {
                 if (it) {
-                    isToggleOn.value = true
-                    initialDateSet.value = false
+                    viewModel.updateFormState(
+                        dateState = FormState.DateState(
+                            isToggleOn = true,
+                            initialDateSet = false
+                        )
+                    )
                 } else {
-                    isToggleOn.value = false
-                    selectedDate.value = ""
-                    viewModel.updateFormState(deadline = null)
+                    viewModel.updateFormState(
+                        deadline = null,
+                        dateState = FormState.DateState(isToggleOn = false, selectedDate = "")
+                    )
                 }
             }
         )
@@ -260,9 +272,11 @@ fun ImportanceSection(viewModel: ToDoViewModel, formState: State<FormState>) {
                     )
                 )
             }
+
             "basic" -> {
                 viewModel.updateFormState(importanceState = FormState.ImportanceState())
             }
+
             else -> {
                 viewModel.updateFormState(importanceState = FormState.ImportanceState("Низкий"))
             }
