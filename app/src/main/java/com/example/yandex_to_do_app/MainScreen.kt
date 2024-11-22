@@ -174,39 +174,64 @@ fun ListOfItems(
 ) {
     val toDoList by viewModel.toDoList.collectAsState()
     val isVisible = viewModel.isVisible.collectAsState()
+    if (toDoList.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .background(Color.White, shape = RoundedCornerShape(12.dp))
+        )
+        {
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color.White, shape = RoundedCornerShape(12.dp))
-    )
-    {
-
-        itemsIndexed(
-            toDoList,
-            key = { _, item -> item.id }) { i, item ->
-            if (!isVisible.value && !item.done || isVisible.value) {
-                ListItem(item, updateTask, viewModel, isButtonClicked)
+            itemsIndexed(
+                toDoList,
+                key = { _, item -> item.id }) { i, item ->
+                if (!isVisible.value && !item.done || isVisible.value) {
+                    ListItem(item, updateTask, viewModel, isButtonClicked)
+                }
+                if (i == toDoList.lastIndex) {
+                    Text(
+                        text = "Новое",
+                        modifier = Modifier
+                            .padding(horizontal = 48.dp, vertical = 15.dp)
+                            .clickable {
+                                if (!isButtonClicked.value) {
+                                    isButtonClicked.value = true
+                                    viewModel.updateList()
+                                    createTask()
+                                }
+                            },
+                        fontFamily = robotoFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = colorResource(id = R.color.tertiary)
+                    )
+                }
             }
-            if (i == toDoList.lastIndex || toDoList.isEmpty()) {
-                Text(
-                    text = "Новое",
-                    modifier = Modifier
-                        .padding(horizontal = 48.dp, vertical = 15.dp)
-                        .clickable {
-                            if (!isButtonClicked.value) {
-                                isButtonClicked.value = true
-                                viewModel.updateList()
-                                createTask()
-                            }
-                        },
-                    fontFamily = robotoFontFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colorResource(id = R.color.tertiary)
-                )
-            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .background(Color.White, shape = RoundedCornerShape(12.dp))
+        ) {
+            Text(
+                text = "Новое",
+                modifier = Modifier
+                    .padding(horizontal = 48.dp, vertical = 15.dp)
+                    .clickable {
+                        if (!isButtonClicked.value) {
+                            isButtonClicked.value = true
+                            viewModel.updateList()
+                            createTask()
+                        }
+                    },
+                fontFamily = robotoFontFamily,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = colorResource(id = R.color.tertiary)
+            )
         }
     }
 }

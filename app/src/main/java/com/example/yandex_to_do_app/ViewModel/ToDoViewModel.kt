@@ -113,8 +113,6 @@ class ToDoViewModel : ViewModel() {
     fun getFormState(id: String) {
         if (id.isEmpty()) {
             _formState.value = FormState()
-        } else if (id == _currentId.value && _currentId.value != "") {
-            return
         } else {
             _currentId.value = id
             getItemById(id) {

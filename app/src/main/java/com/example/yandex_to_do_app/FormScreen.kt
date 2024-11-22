@@ -76,6 +76,7 @@ fun FormScreen(
                 {
                     if (!isButtonClicked.value) {
                         isButtonClicked.value = true
+                        viewModel.getFormState(toDoItemId)
                         navController.popBackStack()
                     }
                 },
@@ -127,7 +128,6 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
         )
         )
     }
-
     val calendar = Calendar.getInstance()
     val datePickerDialog = DatePickerDialog(
         LocalContext.current,
