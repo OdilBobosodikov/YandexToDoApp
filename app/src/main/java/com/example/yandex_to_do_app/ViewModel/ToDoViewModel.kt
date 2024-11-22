@@ -124,8 +124,6 @@ class ToDoViewModel : ViewModel() {
                     deadline = it?.deadline?.let { deadline -> Date(deadline) },
                     createdAt = it?.createdAt ?: Date().time,
                     done = it?.done ?: false,
-                    dateState = FormState.DateState(),
-                    importanceState = FormState.ImportanceState()
                 )
             }
         }
