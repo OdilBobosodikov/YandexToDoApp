@@ -1,6 +1,7 @@
 package com.example.yandex_to_do_app
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -27,6 +28,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,7 +42,6 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -66,6 +67,7 @@ fun MainScreen(
     val errorMessage = viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
+    val isButtonClicked = remember { mutableStateOf(false) }
 
     LaunchedEffect(errorMessage) {
         errorMessage.value?.let {
@@ -107,13 +109,11 @@ fun MainScreen(
             Column(modifier = Modifier.fillMaxSize())
             {
                 Header(viewModel)
-                ListOfItems(updateTask, viewModel)
+                ListOfItems(updateTask, createTask, viewModel, isButtonClicked)
             }
-            CreateNewTaskBottom(viewModel, createTask)
+            CreateNewTaskBottom(viewModel, createTask, isButtonClicked)
         }
     }
-
-
 }
 
 @Composable
@@ -168,37 +168,70 @@ fun ToolBar(viewModel: ToDoViewModel) {
 @Composable
 fun ListOfItems(
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
-    viewModel: ToDoViewModel
+    createTask: () -> Unit,
+    viewModel: ToDoViewModel,
+    isButtonClicked: MutableState<Boolean>
 ) {
-
     val toDoList by viewModel.toDoList.collectAsState()
     val isVisible = viewModel.isVisible.collectAsState()
+    if (toDoList.isNotEmpty()) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .background(Color.White, shape = RoundedCornerShape(12.dp))
+        )
+        {
 
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
-            .background(Color.White, shape = RoundedCornerShape(12.dp))
-    )
-    {
-
-        itemsIndexed(
-            toDoList,
-            key = { _, item -> item.id }) { i, item ->
-            if (!isVisible.value && !item.done || isVisible.value) {
-                ListItem(item, updateTask, viewModel)
+            itemsIndexed(
+                toDoList,
+                key = { _, item -> item.id }) { i, item ->
+                if (!isVisible.value && !item.done || isVisible.value) {
+                    ListItem(item, updateTask, viewModel, isButtonClicked)
+                }
+                if (i == toDoList.lastIndex) {
+                    Text(
+                        text = "Новое",
+                        modifier = Modifier
+                            .padding(horizontal = 48.dp, vertical = 15.dp)
+                            .clickable {
+                                if (!isButtonClicked.value) {
+                                    isButtonClicked.value = true
+                                    viewModel.updateList()
+                                    createTask()
+                                }
+                            },
+                        fontFamily = robotoFontFamily,
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Normal,
+                        color = colorResource(id = R.color.tertiary)
+                    )
+                }
             }
-            if (i == toDoList.lastIndex || toDoList.isEmpty()) {
-                Text(
-                    text = "Новое",
-                    modifier = Modifier
-                        .padding(horizontal = 48.dp, vertical = 15.dp),
-                    fontFamily = robotoFontFamily,
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Normal,
-                    color = colorResource(id = R.color.tertiary)
-                )
-            }
+        }
+    } else {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(8.dp)
+                .background(Color.White, shape = RoundedCornerShape(12.dp))
+        ) {
+            Text(
+                text = "Новое",
+                modifier = Modifier
+                    .padding(horizontal = 48.dp, vertical = 15.dp)
+                    .clickable {
+                        if (!isButtonClicked.value) {
+                            isButtonClicked.value = true
+                            viewModel.updateList()
+                            createTask()
+                        }
+                    },
+                fontFamily = robotoFontFamily,
+                fontSize = 16.sp,
+                fontWeight = FontWeight.Normal,
+                color = colorResource(id = R.color.tertiary)
+            )
         }
     }
 }
@@ -207,30 +240,10 @@ fun ListOfItems(
 fun ListItem(
     todoItemResponse: TodoListResponse.TodoItemResponse,
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
-    viewModel: ToDoViewModel
+    viewModel: ToDoViewModel,
+    isButtonClicked: MutableState<Boolean>
 ) {
-    val item = remember { mutableStateOf(todoItemResponse) }
-    val iconResId = remember { mutableStateOf(R.drawable.ic_unchecked) }
-    val iconColorId = remember { mutableStateOf(R.color.support_separator) }
-    val textColorResId = remember { mutableStateOf(R.color.primary) }
-    val textDecoration = remember { mutableStateOf(TextDecoration.None) }
-    val isLowImportanceSet = remember { mutableStateOf(false) }
-    val isTaskCompleted = remember { mutableStateOf(item.value.done) }
-    if (item.value.importance == "low") {
-        isLowImportanceSet.value = true
-    }
-
-    if (item.value.importance == "important" && !isTaskCompleted.value) {
-        iconResId.value = R.drawable.ic_high_importance
-        textColorResId.value = R.color.red
-        textDecoration.value = TextDecoration.None
-        iconColorId.value = R.color.red
-    } else if (isTaskCompleted.value) {
-        iconResId.value = R.drawable.ic_checked
-        textColorResId.value = R.color.tertiary
-        textDecoration.value = TextDecoration.LineThrough
-        iconColorId.value = R.color.green
-    }
+    val taskStyle = viewModel.getTaskState(todoItemResponse)
 
     Row(
         modifier = Modifier
@@ -241,67 +254,42 @@ fun ListItem(
     {
         IconButton(onClick =
         {
-            isTaskCompleted.value = !isTaskCompleted.value
-            viewModel.updateUIElement(item.value.copy(done = isTaskCompleted.value))
-            if (item.value.importance == "important" && !isTaskCompleted.value) {
-                iconResId.value = R.drawable.ic_high_importance
-                textColorResId.value = R.color.red
-                iconColorId.value = R.color.red
-                textDecoration.value = TextDecoration.None
-                viewModel.updateCounterOfCheckedItems(increase = false)
-            } else if (isTaskCompleted.value) {
-                isLowImportanceSet.value = false
-                iconResId.value = R.drawable.ic_checked
-                textColorResId.value = R.color.tertiary
-                iconColorId.value = R.color.green
-                textDecoration.value = TextDecoration.LineThrough
-                viewModel.updateCounterOfCheckedItems(increase = true)
-            } else {
-                iconResId.value = R.drawable.ic_unchecked
-                textColorResId.value = R.color.primary
-                iconColorId.value = R.color.support_separator
-                textDecoration.value = TextDecoration.None
-                viewModel.updateCounterOfCheckedItems(increase = false)
-            }
+            viewModel.toggleTaskCompletion(todoItemResponse)
         })
         {
             Icon(
-                painter = painterResource(id = iconResId.value),
+                painter = painterResource(id = taskStyle.iconResId),
                 contentDescription = "Check as completed",
-                tint = colorResource(iconColorId.value)
+                tint = colorResource(taskStyle.iconColorId)
             )
         }
-
         Row()
         {
-            if (item.value.importance == "important" && !isTaskCompleted.value) {
-                textColorResId.value = R.color.red
+            if (todoItemResponse.importance == "important" && !todoItemResponse.done) {
                 Text(
                     text = "!!",
                     style = AppTypography().bodyMedium,
-                    color = colorResource(textColorResId.value),
+                    color = colorResource(taskStyle.textColorResId),
                 )
                 Spacer(Modifier.width(3.dp))
-            } else if (isLowImportanceSet.value && !isTaskCompleted.value) {
+            } else if (todoItemResponse.importance == "low" && !todoItemResponse.done) {
                 Icon(
-                    painter = painterResource(id = R.drawable.ic_low_importance),
+                    painter = painterResource(R.drawable.ic_low_importance),
                     contentDescription = "Low Importance",
-                    tint = colorResource(id = R.color.grey_light),
+                    tint = colorResource(taskStyle.iconColorId),
                     modifier = Modifier.padding(top = 3.dp)
                 )
             }
             Column {
-                if (isTaskCompleted.value) {
-                    textDecoration.value = TextDecoration.LineThrough
-                    textColorResId.value = R.color.tertiary
+                if (todoItemResponse.done) {
                     Text(
-                        text = item.value.text,
+                        text = todoItemResponse.text,
                         style = TextStyle(
                             fontFamily = robotoFontFamily,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Normal,
-                            color = colorResource(textColorResId.value),
-                            textDecoration = textDecoration.value
+                            color = colorResource(taskStyle.textColorResId),
+                            textDecoration = taskStyle.textDecoration
                         ),
                         maxLines = 3,
                         overflow = TextOverflow.Ellipsis,
@@ -309,7 +297,7 @@ fun ListItem(
                     )
                 } else {
                     Text(
-                        text = item.value.text,
+                        text = todoItemResponse.text,
                         style = AppTypography().bodyMedium,
                         color = colorResource(R.color.primary),
                         maxLines = 3,
@@ -317,27 +305,25 @@ fun ListItem(
                         modifier = Modifier.width(270.dp)
                     )
                 }
-                if (item.value.deadline != null) {
+                if (todoItemResponse.deadline != null) {
                     Text(
-                        text = viewModel.getFormattedDeadline(Date(item.value.deadline!!)),
+                        text = viewModel.getFormattedDeadline(Date(todoItemResponse.deadline)),
                         style = AppTypography().headlineSmall,
                         color = colorResource(R.color.tertiary)
                     )
                 }
             }
         }
-        val isUpdatingTask = remember { mutableStateOf(false) }
-
         Spacer(modifier = Modifier.weight(1f))
         IconButton(
             onClick = {
-                if (!isUpdatingTask.value) {
-                    isUpdatingTask.value = true
+                if (!isButtonClicked.value) {
+                    isButtonClicked.value = true
                     viewModel.updateList()
-                    updateTask(item.value)
+                    updateTask(todoItemResponse)
                 }
             },
-            enabled = !isUpdatingTask.value
+            enabled = !isButtonClicked.value
         )
         {
             Icon(
@@ -352,26 +338,26 @@ fun ListItem(
 @Composable
 fun CreateNewTaskBottom(
     viewModel: ToDoViewModel,
-    createTask: () -> Unit
+    createTask: () -> Unit,
+    isButtonClicked: MutableState<Boolean>
 ) {
-    val isCreatingTask = remember { mutableStateOf(false) }
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         FloatingActionButton(
             onClick = {
-                if (!isCreatingTask.value) {
-                    isCreatingTask.value = true
+                if (!isButtonClicked.value) {
+                    isButtonClicked.value = true
                     viewModel.updateList()
                     createTask()
                 }
             },
             modifier = Modifier
                 .align(Alignment.BottomEnd)
-                .padding(bottom = 25.dp, end = 10.dp)
-                .size(56.dp)
+                .padding(bottom = 50.dp, end = 10.dp)
+                .size(72.dp)
                 .then(
-                    if (isCreatingTask.value) Modifier.pointerInput(Unit) { } else Modifier
+                    if (isButtonClicked.value) Modifier.pointerInput(Unit) { } else Modifier
                 ),
             containerColor = colorResource(R.color.blue),
             shape = CircleShape,

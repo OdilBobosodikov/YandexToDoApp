@@ -15,8 +15,7 @@ data class TodoListResponse(
 
     @SerialName("revision")
     val revision: Int
-)
-{
+) {
     @Serializable
     data class TodoItemResponse(
         @SerialName("id")
@@ -76,12 +75,3 @@ data class UpdateListRequest(
     @SerialName("list")
     val list: List<TodoItemResponse>
 )
-
-//enum class Importance{
-//    @SerialName("low")
-//    Low,
-//    @SerialName("basic")
-//    Basic,
-//    @SerialName("important")
-//    Important,
-//}
