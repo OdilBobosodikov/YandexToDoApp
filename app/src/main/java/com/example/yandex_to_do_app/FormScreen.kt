@@ -27,11 +27,11 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.MutableState
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableLongStateOf
+import androidx.compose.runtime.State
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -45,12 +45,11 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
-import com.example.yandex_to_do_app.model.TodoListResponse
-import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
+import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.ui.theme.AppTypography
 import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
+import kotlinx.coroutines.launch
 import java.util.Calendar
-import java.util.Date
 
 
 @Composable
@@ -59,27 +58,12 @@ fun FormScreen(
     toDoItemId: String = "",
     viewModel: ToDoViewModel = ToDoViewModel()
 ) {
-
-    val textState = remember { mutableStateOf("") }
-    val importanceState = remember { mutableStateOf("basic") }
-    val completionState = remember { mutableStateOf(false) }
-    val deadlineDateState: MutableState<Date?> = remember { mutableStateOf(null) }
-    val createdAt: MutableState<Long> = remember { mutableLongStateOf(Date().time) }
-    var toDoItemId = toDoItemId
-
-    if (toDoItemId != "") {
-        viewModel.getItemById(toDoItemId) {
-            textState.value = it?.text ?: ""
-            importanceState.value = it?.importance ?: "basic"
-            deadlineDateState.value = it?.deadline?.let { Date(it) }
-            createdAt.value = it?.createdAt ?: Date().time
-            toDoItemId = it?.id ?: ""
-            completionState.value = it?.done ?: false
-        }
+    LaunchedEffect(toDoItemId) {
+        viewModel.getFormState(toDoItemId)
     }
-
-
-
+    val isButtonClicked = remember { mutableStateOf(false) }
+    val formState = viewModel.formState.collectAsState()
+    val coroutineScope = rememberCoroutineScope()
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -89,7 +73,13 @@ fun FormScreen(
         Row(modifier = Modifier.fillMaxWidth())
         {
             IconButton(
-                { navController.popBackStack() },
+                {
+                    if (!isButtonClicked.value) {
+                        isButtonClicked.value = true
+                        viewModel.getFormState("")
+                        navController.popBackStack()
+                    }
+                },
                 modifier = Modifier.size(24.dp)
             )
             {
@@ -102,30 +92,11 @@ fun FormScreen(
                 modifier = Modifier
                     .align(Alignment.CenterVertically)
                     .clickable {
-                        if (toDoItemId != "") {
-                            viewModel.updateItemById(
-                                toDoItemId,
-                                TodoPostPutDeleteItemRequest(
-                                    status = "ok",
-                                    element = TodoListResponse.TodoItemResponse(
-                                        id = toDoItemId,
-                                        text = textState.value,
-                                        importance = importanceState.value,
-                                        deadline = deadlineDateState.value?.time,
-                                        done = completionState.value,
-                                        createdAt = createdAt.value,
-                                        changedAt = Date().time,
-                                        lastUpdatedBy = "qwe"
-                                    )
-                                )
-                            )
-                            navController.popBackStack()
-                        } else {
-                            viewModel.postToDoItem(
-                                text = textState.value,
-                                importance = importanceState.value,
-                                deadline = deadlineDateState.value,
-                            )
+                        if (!isButtonClicked.value) {
+                            isButtonClicked.value = true
+                            coroutineScope.launch {
+                                viewModel.saveItem(toDoItemId).join()
+                            }
                             navController.popBackStack()
                         }
                     }
@@ -133,13 +104,13 @@ fun FormScreen(
         }
 
         Spacer(modifier = Modifier.height(20.dp))
-        TextSection(textState)
+        TextSection(viewModel, formState)
         Spacer(modifier = Modifier.height(20.dp))
-        ImportanceSection(importanceState)
+        ImportanceSection(viewModel, formState)
         Spacer(modifier = Modifier.height(20.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
-        DateSection(deadlineDateState, viewModel)
+        DateSection(viewModel, formState)
         Spacer(modifier = Modifier.height(20.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
@@ -148,34 +119,36 @@ fun FormScreen(
 }
 
 @Composable
-fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
-    val isToggleOn = remember { mutableStateOf(false) }
-    val initialDateSet = remember { mutableStateOf(false) }
-    val selectedDate = remember { mutableStateOf("") }
+fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
 
-    if (dateState.value != null) {
-        selectedDate.value = viewModel.appDateFormat.format(dateState.value)
-        isToggleOn.value = true
-        initialDateSet.value = true
+    if (formState.value.deadline != null) {
+        viewModel.updateFormState(dateState = FormState.DateState(true,
+            true,
+            formState.value.deadline?.let { viewModel.appDateFormat.format(it) }.toString()
+        )
+        )
     }
-
     val calendar = Calendar.getInstance()
     val datePickerDialog = DatePickerDialog(
         LocalContext.current,
         { _: DatePicker, year: Int, month: Int, dayOfMonth: Int ->
             calendar.set(year, month, dayOfMonth)
-            selectedDate.value = viewModel.appDateFormat.format(calendar.time)
-            dateState.value = calendar.time
-            isToggleOn.value = true
-            initialDateSet.value = true
+            viewModel.updateFormState(
+                deadline = calendar.time,
+                dateState = FormState.DateState(
+                    true,
+                    true,
+                    viewModel.appDateFormat.format(calendar.time)
+                )
+            )
         },
         calendar.get(Calendar.YEAR),
         calendar.get(Calendar.MONTH),
         calendar.get(Calendar.DAY_OF_MONTH)
     )
 
-    LaunchedEffect(isToggleOn.value && !initialDateSet.value) {
-        if (isToggleOn.value && !initialDateSet.value) {
+    LaunchedEffect(formState.value.dateState.isToggleOn && !formState.value.dateState.initialDateSet) {
+        if (formState.value.dateState.isToggleOn && !formState.value.dateState.initialDateSet) {
             datePickerDialog.show()
         }
     }
@@ -190,9 +163,9 @@ fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
                 text = "Сделать до",
                 style = AppTypography().bodyMedium,
             )
-            if (isToggleOn.value) {
+            if (formState.value.dateState.isToggleOn) {
                 Text(
-                    text = selectedDate.value,
+                    text = formState.value.dateState.selectedDate,
                     style = AppTypography().bodySmall,
                     color = colorResource(R.color.blue)
                 )
@@ -200,15 +173,20 @@ fun DateSection(dateState: MutableState<Date?>, viewModel: ToDoViewModel) {
         }
         Spacer(Modifier.weight(1f))
         Switch(
-            checked = isToggleOn.value,
+            checked = formState.value.dateState.isToggleOn,
             onCheckedChange = {
                 if (it) {
-                    isToggleOn.value = true
-                    initialDateSet.value = false
+                    viewModel.updateFormState(
+                        dateState = FormState.DateState(
+                            isToggleOn = true,
+                            initialDateSet = false
+                        )
+                    )
                 } else {
-                    isToggleOn.value = false
-                    selectedDate.value = ""
-                    dateState.value = null
+                    viewModel.updateFormState(
+                        deadline = null,
+                        dateState = FormState.DateState(isToggleOn = false, selectedDate = "")
+                    )
                 }
             }
         )
@@ -257,7 +235,7 @@ fun DeleteSection(itemId: String, navController: NavController, viewModel: ToDoV
 }
 
 @Composable
-fun TextSection(taskState: MutableState<String>) {
+fun TextSection(viewModel: ToDoViewModel, formState: State<FormState>) {
     Box(
         modifier = Modifier
             .shadow(4.dp)
@@ -265,8 +243,8 @@ fun TextSection(taskState: MutableState<String>) {
     ) {
 
         BasicTextField(
-            value = taskState.value,
-            onValueChange = { taskState.value = it },
+            value = formState.value.text,
+            onValueChange = { viewModel.updateFormState(text = it) },
             modifier = Modifier
                 .fillMaxWidth()
                 .background(color = Color.White, shape = RoundedCornerShape(10f))
@@ -277,37 +255,50 @@ fun TextSection(taskState: MutableState<String>) {
 }
 
 @Composable
-fun ImportanceSection(importanceState: MutableState<String>) {
-    val textOfImportanceStatus = remember { mutableStateOf("Нет") }
-    val colorOfImportanceStatus = remember { mutableIntStateOf(R.color.tertiary) }
+fun ImportanceSection(viewModel: ToDoViewModel, formState: State<FormState>) {
     val expanded = remember { mutableStateOf(false) }
-
     Column {
         Text(
             text = "Важность",
             style = AppTypography().bodyMedium,
         )
 
-        updateImportanceValues(importanceState, textOfImportanceStatus, colorOfImportanceStatus)
+        when (formState.value.importance) {
+            "important" -> {
+                viewModel.updateFormState(
+                    importanceState = FormState.ImportanceState(
+                        "!! Высокий",
+                        R.color.red
+                    )
+                )
+            }
+
+            "basic" -> {
+                viewModel.updateFormState(importanceState = FormState.ImportanceState())
+            }
+
+            else -> {
+                viewModel.updateFormState(importanceState = FormState.ImportanceState("Низкий"))
+            }
+        }
 
         Text(
-            text = textOfImportanceStatus.value,
-            color = colorResource(colorOfImportanceStatus.intValue),
-            modifier = Modifier.clickable { expanded.value = true }
+            text = formState.value.importanceState.textOfImportanceStatus,
+            color = colorResource(formState.value.importanceState.colorOfImportanceStatus),
+            modifier = Modifier.clickable {
+                expanded.value = true
+            }
         )
 
         DropdownMenu(
             expanded = expanded.value,
-            onDismissRequest = { expanded.value = false },
+            onDismissRequest = {
+                expanded.value = false
+            },
             modifier = Modifier.background(color = Color.White)
         ) {
             DropdownMenuItem(onClick = {
-                importanceState.value = "basic"
-                updateImportanceValues(
-                    importanceState,
-                    textOfImportanceStatus,
-                    colorOfImportanceStatus
-                )
+                viewModel.updateFormState(importance = "basic")
                 expanded.value = false
             }, text = {
                 Text(
@@ -316,12 +307,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
                 )
             })
             DropdownMenuItem(onClick = {
-                importanceState.value = "low"
-                updateImportanceValues(
-                    importanceState,
-                    textOfImportanceStatus,
-                    colorOfImportanceStatus
-                )
+                viewModel.updateFormState(importance = "low")
                 expanded.value = false
             }, text = {
                 Text(
@@ -330,12 +316,7 @@ fun ImportanceSection(importanceState: MutableState<String>) {
                 )
             })
             DropdownMenuItem(onClick = {
-                importanceState.value = "important"
-                updateImportanceValues(
-                    importanceState,
-                    textOfImportanceStatus,
-                    colorOfImportanceStatus
-                )
+                viewModel.updateFormState(importance = "important")
                 expanded.value = false
             }, text = {
                 Text(
@@ -346,24 +327,6 @@ fun ImportanceSection(importanceState: MutableState<String>) {
         }
     }
 }
-
-fun updateImportanceValues(
-    importanceState: MutableState<String>,
-    textOfImportanceStatus: MutableState<String>,
-    colorOfImportanceStatus: MutableState<Int>
-) {
-    if (importanceState.value == "important") {
-        textOfImportanceStatus.value = "!! Высокий"
-        colorOfImportanceStatus.value = R.color.red
-    } else if (importanceState.value == "basic") {
-        textOfImportanceStatus.value = "Нет"
-        colorOfImportanceStatus.value = R.color.tertiary
-    } else {
-        textOfImportanceStatus.value = "Низкий"
-        colorOfImportanceStatus.value = R.color.tertiary
-    }
-}
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
