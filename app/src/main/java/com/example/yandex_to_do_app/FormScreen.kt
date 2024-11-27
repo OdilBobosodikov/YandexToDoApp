@@ -45,6 +45,7 @@ import androidx.navigation.NavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.ui.theme.AppTypography
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -73,7 +74,7 @@ fun FormScreen(
                 {
                     if (!isButtonClicked.value) {
                         isButtonClicked.value = true
-                        viewModel.getFormState("")
+                        viewModel.getFormState(toDoItemId)
                         navController.popBackStack()
                     }
                 },
@@ -93,8 +94,8 @@ fun FormScreen(
                             isButtonClicked.value = true
                             coroutineScope.launch {
                                 viewModel.saveItem(toDoItemId).join()
+                                navController.popBackStack()
                             }
-                            navController.popBackStack()
                         }
                     }
             )
@@ -111,7 +112,7 @@ fun FormScreen(
         Spacer(modifier = Modifier.height(20.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
-        DeleteSection(toDoItemId, navController, viewModel)
+        DeleteSection(toDoItemId, navController, viewModel, coroutineScope)
     }
 }
 
@@ -191,12 +192,19 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
 }
 
 @Composable
-fun DeleteSection(itemId: String, navController: NavController, viewModel: ToDoViewModel) {
+fun DeleteSection(
+    itemId: String,
+    navController: NavController,
+    viewModel: ToDoViewModel,
+    coroutineScope: CoroutineScope
+) {
     if (itemId != "") {
         Row(
             modifier = Modifier.clickable {
-                viewModel.deleteToDoItemById(itemId)
-                navController.popBackStack()
+                coroutineScope.launch {
+                    viewModel.deleteToDoItemById(itemId).join()
+                    navController.popBackStack()
+                }
             },
             verticalAlignment = Alignment.CenterVertically
         )

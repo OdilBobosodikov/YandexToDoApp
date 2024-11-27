@@ -200,13 +200,12 @@ class ToDoViewModel @Inject constructor(
                         )
                     )
                 ).join()
-                getToDoItems().join()
             } else {
                 postToDoItem(
                     text = formState.value.text,
                     importance = formState.value.importance,
                     deadline = formState.value.deadline
-                )
+                ).join()
             }
         }
     }
@@ -240,8 +239,8 @@ class ToDoViewModel @Inject constructor(
         }
     }
 
-    fun deleteToDoItemById(itemId: String) {
-        viewModelScope.launch {
+    fun deleteToDoItemById(itemId: String) : Job {
+        return viewModelScope.launch {
             val result = repository.deleteToDoItemById(itemId, _revision.value)
             result.onSuccess {
                 getToDoItems()
@@ -261,8 +260,8 @@ class ToDoViewModel @Inject constructor(
         text: String,
         importance: String,
         deadline: Date?
-    ) {
-        viewModelScope.launch {
+    ) :Job {
+        return viewModelScope.launch {
             val result = repository.addToDoItem(
                 TodoPostPutDeleteItemRequest(
                     "ok",
