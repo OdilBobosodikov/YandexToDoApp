@@ -3,6 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     kotlin("plugin.serialization") version "1.9.0"
+
+    id("kotlin-kapt")
 }
 
 android {
@@ -60,6 +62,10 @@ dependencies {
     debugImplementation(libs.androidx.ui.test.manifest)
 
 
+    implementation("com.google.dagger:dagger:2.52")
+    kapt("com.google.dagger:dagger-compiler:2.52")
+    implementation("com.google.dagger:dagger-android:2.52")
+    kapt("com.google.dagger:dagger-android-processor:2.52")
 
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.retrofit)
