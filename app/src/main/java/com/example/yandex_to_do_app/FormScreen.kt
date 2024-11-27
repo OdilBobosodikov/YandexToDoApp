@@ -40,14 +40,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -56,7 +53,7 @@ import java.util.Calendar
 fun FormScreen(
     navController: NavController,
     toDoItemId: String = "",
-    viewModel: ToDoViewModel = ToDoViewModel()
+    viewModel: ToDoViewModel
 ) {
     LaunchedEffect(toDoItemId) {
         viewModel.getFormState(toDoItemId)
@@ -324,17 +321,6 @@ fun ImportanceSection(viewModel: ToDoViewModel, formState: State<FormState>) {
                     color = colorResource(R.color.red)
                 )
             })
-        }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun FormScreen() {
-    YandexToDoAppTheme {
-        val navController = rememberNavController()
-        YandexToDoAppTheme {
-            FormScreen(navController)
         }
     }
 }

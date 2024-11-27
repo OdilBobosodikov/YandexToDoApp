@@ -43,7 +43,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
@@ -52,7 +51,6 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import com.example.yandex_to_do_app.ui.theme.robotoFontFamily
 import kotlinx.coroutines.launch
 import java.util.Date
@@ -62,7 +60,7 @@ import java.util.Date
 fun MainScreen(
     createTask: () -> Unit,
     updateTask: (TodoListResponse.TodoItemResponse) -> Unit,
-    viewModel: ToDoViewModel = ToDoViewModel()
+    viewModel: ToDoViewModel
 ) {
     val errorMessage = viewModel.errorMessage.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -367,16 +365,6 @@ fun CreateNewTaskBottom(
                 contentDescription = "Add",
                 tint = Color.White
             )
-        }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun MainActivityPreview() {
-    YandexToDoAppTheme {
-        YandexToDoAppTheme {
-            MainScreen({}, {})
         }
     }
 }

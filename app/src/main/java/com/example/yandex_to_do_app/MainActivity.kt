@@ -9,6 +9,7 @@ import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
 import androidx.navigation.compose.*
 import androidx.navigation.navArgument
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
+import jakarta.inject.Inject
 
 
 class MainActivity : ComponentActivity() {
@@ -18,12 +19,15 @@ class MainActivity : ComponentActivity() {
         const val formScreen = "formScreen"
     }
 
+    @Inject
+    lateinit var toDoViewModel: ToDoViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        (application as ToDoApplication).appComponent.inject(this)
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
             val navController = rememberNavController()
-            val viewModel = ToDoViewModel()
             YandexToDoAppTheme {
                 NavHost(navController, Route.mainScreen)
                 {
@@ -36,7 +40,7 @@ class MainActivity : ComponentActivity() {
                             updateTask = {
                                 navController.navigate("formScreen/${it.id}")
                             },
-                            viewModel
+                            toDoViewModel
                         )
                     }
 
@@ -48,13 +52,13 @@ class MainActivity : ComponentActivity() {
                         FormScreen(
                             navController = navController,
                             toDoItemId = toDoItemId,
-                            viewModel
+                            toDoViewModel
                         )
                     }
                     composable(Route.formScreen) {
                         FormScreen(
                             navController = navController,
-                            viewModel = viewModel
+                            viewModel = toDoViewModel
                         )
                     }
                 }

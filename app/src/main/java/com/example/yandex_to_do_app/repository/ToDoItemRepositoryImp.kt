@@ -1,15 +1,17 @@
 package com.example.yandex_to_do_app.repository
 
 import android.view.WindowManager.BadTokenException
-import com.example.yandex_to_do_app.APIHandler.RetrofitInstance
+import com.example.yandex_to_do_app.interfaces.ToDoApiService
 import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoOneItemResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.model.UpdateListRequest
+import jakarta.inject.Inject
 
-class ToDoItemRepositoryImp : ToDoItemRepository {
-    private val apiService = RetrofitInstance.api
+class ToDoItemRepositoryImp @Inject constructor(
+    private val apiService: ToDoApiService
+) : ToDoItemRepository {
 
     override suspend fun getAllToDoItems(): Result<TodoListResponse> {
         return try {

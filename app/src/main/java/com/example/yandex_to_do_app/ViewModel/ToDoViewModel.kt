@@ -4,12 +4,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yandex_to_do_app.R
+import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.model.ListItemState
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.model.UpdateListRequest
-import com.example.yandex_to_do_app.repository.ToDoItemRepositoryImp
+import jakarta.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,8 +23,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-class ToDoViewModel : ViewModel() {
-    private val repository = ToDoItemRepositoryImp()
+class ToDoViewModel @Inject constructor(
+    private val repository: ToDoItemRepository
+) : ViewModel() {
 
     init {
         getToDoItems()
