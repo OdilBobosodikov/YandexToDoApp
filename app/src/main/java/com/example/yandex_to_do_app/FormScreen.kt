@@ -40,14 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.example.yandex_to_do_app.ViewModel.ToDoViewModel
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.ui.theme.AppTypography
-import com.example.yandex_to_do_app.ui.theme.YandexToDoAppTheme
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
@@ -56,7 +54,7 @@ import java.util.Calendar
 fun FormScreen(
     navController: NavController,
     toDoItemId: String = "",
-    viewModel: ToDoViewModel = ToDoViewModel()
+    viewModel: ToDoViewModel
 ) {
     LaunchedEffect(toDoItemId) {
         viewModel.getFormState(toDoItemId)
@@ -76,7 +74,7 @@ fun FormScreen(
                 {
                     if (!isButtonClicked.value) {
                         isButtonClicked.value = true
-                        viewModel.getFormState("")
+                        viewModel.getFormState(toDoItemId)
                         navController.popBackStack()
                     }
                 },
@@ -96,8 +94,8 @@ fun FormScreen(
                             isButtonClicked.value = true
                             coroutineScope.launch {
                                 viewModel.saveItem(toDoItemId).join()
+                                navController.popBackStack()
                             }
-                            navController.popBackStack()
                         }
                     }
             )
@@ -114,7 +112,7 @@ fun FormScreen(
         Spacer(modifier = Modifier.height(20.dp))
         HorizontalDivider()
         Spacer(modifier = Modifier.height(20.dp))
-        DeleteSection(toDoItemId, navController, viewModel)
+        DeleteSection(toDoItemId, navController, viewModel, coroutineScope)
     }
 }
 
@@ -194,12 +192,19 @@ fun DateSection(viewModel: ToDoViewModel, formState: State<FormState>) {
 }
 
 @Composable
-fun DeleteSection(itemId: String, navController: NavController, viewModel: ToDoViewModel) {
+fun DeleteSection(
+    itemId: String,
+    navController: NavController,
+    viewModel: ToDoViewModel,
+    coroutineScope: CoroutineScope
+) {
     if (itemId != "") {
         Row(
             modifier = Modifier.clickable {
-                viewModel.deleteToDoItemById(itemId)
-                navController.popBackStack()
+                coroutineScope.launch {
+                    viewModel.deleteToDoItemById(itemId).join()
+                    navController.popBackStack()
+                }
             },
             verticalAlignment = Alignment.CenterVertically
         )
@@ -324,17 +329,6 @@ fun ImportanceSection(viewModel: ToDoViewModel, formState: State<FormState>) {
                     color = colorResource(R.color.red)
                 )
             })
-        }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun FormScreen() {
-    YandexToDoAppTheme {
-        val navController = rememberNavController()
-        YandexToDoAppTheme {
-            FormScreen(navController)
         }
     }
 }

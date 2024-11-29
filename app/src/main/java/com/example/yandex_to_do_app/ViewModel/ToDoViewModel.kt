@@ -4,12 +4,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.yandex_to_do_app.R
+import com.example.yandex_to_do_app.interfaces.ToDoItemRepository
 import com.example.yandex_to_do_app.model.FormState
 import com.example.yandex_to_do_app.model.ListItemState
 import com.example.yandex_to_do_app.model.TodoListResponse
 import com.example.yandex_to_do_app.model.TodoPostPutDeleteItemRequest
 import com.example.yandex_to_do_app.model.UpdateListRequest
-import com.example.yandex_to_do_app.repository.ToDoItemRepositoryImp
+import jakarta.inject.Inject
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelChildren
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,8 +23,9 @@ import java.util.Date
 import java.util.Locale
 import java.util.UUID
 
-class ToDoViewModel : ViewModel() {
-    private val repository = ToDoItemRepositoryImp()
+class ToDoViewModel @Inject constructor(
+    private val repository: ToDoItemRepository
+) : ViewModel() {
 
     init {
         getToDoItems()
@@ -198,13 +200,12 @@ class ToDoViewModel : ViewModel() {
                         )
                     )
                 ).join()
-                getToDoItems().join()
             } else {
                 postToDoItem(
                     text = formState.value.text,
                     importance = formState.value.importance,
                     deadline = formState.value.deadline
-                )
+                ).join()
             }
         }
     }
@@ -238,8 +239,8 @@ class ToDoViewModel : ViewModel() {
         }
     }
 
-    fun deleteToDoItemById(itemId: String) {
-        viewModelScope.launch {
+    fun deleteToDoItemById(itemId: String) : Job {
+        return viewModelScope.launch {
             val result = repository.deleteToDoItemById(itemId, _revision.value)
             result.onSuccess {
                 getToDoItems()
@@ -259,8 +260,8 @@ class ToDoViewModel : ViewModel() {
         text: String,
         importance: String,
         deadline: Date?
-    ) {
-        viewModelScope.launch {
+    ) :Job {
+        return viewModelScope.launch {
             val result = repository.addToDoItem(
                 TodoPostPutDeleteItemRequest(
                     "ok",
